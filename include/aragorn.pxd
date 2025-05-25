@@ -21,6 +21,15 @@ cdef extern from "aragorn.h" nogil:
     const size_t MAXTRNALEN
     const size_t MAXETRNALEN
 
+    const size_t MINTAGDIST
+    const size_t MAXTAGDIST
+
+    const size_t MAXTMRNALEN
+    const size_t TSWEEP
+    const size_t WRAP
+    const size_t NPTAG
+    const size_t MAXAGENELEN
+
     const size_t NA
     const size_t ND
     const size_t NT
@@ -30,6 +39,19 @@ cdef extern from "aragorn.h" nogil:
     const size_t NGFT
     const size_t NTAG
     const size_t NTAGMAX
+    const size_t LSEQ
+    const size_t ATBOND
+
+    cdef bint space(char c)
+    cdef long int sq(long int pos) 
+
+    cdef enum base:
+        Adenine
+        Cytosine
+        Guanine
+        Thymine
+        AMBIG
+        NOBASE
 
     cdef enum data_type:
         FASTA
@@ -208,5 +230,16 @@ cdef extern from "aragorn.h" nogil:
         double eref[NS]
         int tmrna_struct[200]
 
-
     void bopt_fastafile(data_set *d, csw *sw)
+    void batch_gene_set(data_set* d, int nt, csw* sw)
+    char cbase(int c)
+    char cpbase(int c)
+    void init_gene(gene* ts, int nstart, int nstop)
+    int move_forward(data_set *d)
+    void remove_overlapping_trna(data_set *d, int nt, csw *sw)
+    void report_new_tmrna_tags(csw *sw)
+    void sense_switch(int *seq1, int *seq2, int lseq)
+    int seq_init(data_set *d, csw *sw)
+    int seqlen(gene* t)
+    int tmioptimise(data_set *d, int *seq, int lseq, int nts, csw *sw)
+    void update_tmrna_tag_database(gene* ts, int nt, csw *sw)
