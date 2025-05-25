@@ -25,24 +25,24 @@ cdef extern from * nogil:
     """
     void default_sw(csw* sw) {
         csw x = {
-            {"tRNA", "tmRNA", "", "", "CDS", "overall"}, 
-            NULL, NULL, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, STANDARD, 0, 
-            {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, 
-            0, METAZOAN_MT, 1, 0, 5, 5, 1, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 
-            3, 0, 2, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 
-            {0, 0, 0, 0, 0, 0}, 0, 0, 0, 0, NTAG, 10, 30, 
-            {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, 
-            0, 0, 0, 0, 0L, 100.0, 1.0, tRNAthresh, 4.0, 29.0, 26.0, 7.5, 8.0, 
-            mtRNAtthresh, mtRNAdthresh, mtRNAdtthresh, -7.9, -6.0, tmRNAthresh, 
-            14.0, 10.0, 25.0, 9.0, srpRNAthresh, CDSthresh, 
-            {tRNAthresh, tmRNAthresh, srpRNAthresh, 0.0, CDSthresh}, 
+            {"tRNA", "tmRNA", "", "", "CDS", "overall"},
+            NULL, NULL, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, STANDARD, 0,
+            {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+            0, METAZOAN_MT, 1, 0, 5, 5, 1, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0,
+            3, 0, 2, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0,
+            {0, 0, 0, 0, 0, 0}, 0, 0, 0, 0, NTAG, 10, 30,
+            {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0},
+            0, 0, 0, 0, 0L, 100.0, 1.0, tRNAthresh, 4.0, 29.0, 26.0, 7.5, 8.0,
+            mtRNAtthresh, mtRNAdthresh, mtRNAdtthresh, -7.9, -6.0, tmRNAthresh,
+            14.0, 10.0, 25.0, 9.0, srpRNAthresh, CDSthresh,
+            {tRNAthresh, tmRNAthresh, srpRNAthresh, 0.0, CDSthresh},
             {
-                45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 
-                45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 10, 65, 
-                82, 65, 71, 79, 82, 78, 32, 118, 49, 46, 50, 46, 52, 49, 32, 
-                32, 32, 68, 101, 97, 110, 32, 76, 97, 115, 108, 101, 116, 116, 
-                10, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 
-                45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 10, 
+                45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45,
+                45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 10, 65,
+                82, 65, 71, 79, 82, 78, 32, 118, 49, 46, 50, 46, 52, 49, 32,
+                32, 32, 68, 101, 97, 110, 32, 76, 97, 115, 108, 101, 116, 116,
+                10, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45,
+                45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 10,
                 TERM
             }
         };
@@ -51,12 +51,30 @@ cdef extern from * nogil:
     """
     void default_sw(csw* sw)
 
+
 cdef inline long int sq(data_set* d, long int pos) nogil:
     return (pos + d.psmax - 1) % d.psmax + 1
 
 
 cdef class Gene:
+
     cdef gene _gene
+    cdef int  _genetic_code
+
+    @staticmethod
+    cdef Gene _new_gene(gene* _gene, int _genetic_code):
+        cdef Gene obj
+
+        if _gene.genetype == aragorn.tRNA:
+            obj = TRNAGene.__new__(TRNAGene)
+        elif _gene.genetype == aragorn.tmRNA:
+            obj = TMRNAGene.__new__(TMRNAGene)
+        else:
+            raise NotImplementedError
+
+        memcpy(&obj._gene, _gene, sizeof(gene))
+        obj._genetic_code = _genetic_code
+        return obj
 
     @property
     def type(self):
@@ -89,21 +107,41 @@ cdef class Gene:
 
     @property
     def strand(self):
-        return -1 if self._gene.comp else +1 
+        return -1 if self._gene.comp else +1
+
+
+
+
+cdef class TRNAGene(Gene):
+
+    @property
+    def amino_acid(self):
+        cdef csw sw
+        cdef int* s = self._gene.seq + self._gene.anticodon
+        (<int*> &sw.geneticcode)[0] = self._genetic_code
+        if self._gene.cloop == 6:
+            return (
+                aragorn.aa(s - 1, &sw).decode('ascii'),
+                aragorn.aa(s, &sw).decode('ascii'),
+            )
+        elif self._gene.cloop == 8:
+            return (
+                aragorn.aa(s, &sw).decode('ascii'),
+                aragorn.aa(s + 1, &sw).decode('ascii')
+            )
+        else:
+            return aragorn.aa(s, &sw).decode('ascii')
 
     @property
     def anticodon(self):
-
         cdef tuple c
         cdef int*  s = self._gene.seq + self._gene.anticodon
-
         if self._gene.cloop == 6:
             c = ( aragorn.cbase(s[0]), aragorn.cbase(s[1]) )
         elif self._gene.cloop == 8:
             c = ( aragorn.cbase(s[0]), aragorn.cbase(s[1]), aragorn.cbase(s[2]), aragorn.cbase(s[3]) )
         else:
             c = ( aragorn.cbase(s[0]), aragorn.cbase(s[1]), aragorn.cbase(s[2]) )
-
         return ''.join(map(chr, c))
 
     @property
@@ -114,32 +152,19 @@ cdef class Gene:
         return x
 
 
+cdef class TMRNAGene(Gene):
+    pass
+
+
+
 
 cdef int[256] _map = [
     -4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,
     -4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,
-    -4,-4,-4,-4,-4,-4,
-    5,-3,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,
-    -4,-4,-2,-4,-4,
-    0,
-    4,
-    1,
-    4,-4,-4,
-    2,
-    4,
-    -4,-4,
-    4,-5,
-    4,
-    4,-4,-4,-4,
-    4,
-    4,
-    3,
-    3,
-    4,
-    4,-4,
-    4,-4,-4,-4,-4,-2,5,-4,0,4,1,4,
-    -4,-4,2,4,-4,-4,4,-5,4,4,-4,-4,-4,
-    4,4,3,3,4,4,-4,
+    -4,-4,-4,-4,-4,-4, 5,-3,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,
+    -4,-4,-2,-4,-4, 0, 4, 1, 4,-4,-4, 2, 4, -4,-4, 4,-5, 4, 4,
+    -4,-4,-4, 4, 4, 3, 3, 4, 4,-4, 4,-4,-4,-4,-4,-2,5,-4,0,4,1,4,
+    -4,-4,2,4,-4,-4,4,-5,4,4,-4,-4,-4, 4,4,3,3,4,4,-4,
     4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,
     -4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,
     -4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,
@@ -167,7 +192,7 @@ cdef class Cursor:
             view = obj
             self.kind = PyUnicode_1BYTE_KIND
             self.data = &view[0]
-            self.length = view.shape[0] 
+            self.length = view.shape[0]
         self.obj = obj
         self.pos = 0
 
@@ -195,7 +220,7 @@ cdef class Cursor:
         cdef int  base
         cdef long i
         cdef long ngc  = 0
-        
+
         for i in range(self.length):
             base = self._forward(d)
             if base == -1:
@@ -213,8 +238,8 @@ cdef class RNAFinder:
         self._sw.trna = True
         self._sw.tmrna = True
         self._sw.f = stdout
-        self._sw.verbose = True
-        
+        self._sw.verbose = False #True
+
         self._sw.genespace = aragorn.NT
         self._sw.genes = <gene*> calloc(self._sw.genespace, sizeof(gene))
         if self._sw.genes is NULL:
@@ -223,50 +248,36 @@ cdef class RNAFinder:
     def __dealloc__(self):
         free(self._sw.genes)
 
-    def run(self, filename):
-
+    def find_rna(self, sequence):
         cdef Gene     g
         cdef data_set ds
-        cdef int      fd
+        cdef int      nt
+        cdef csw      sw
+        cdef Cursor   cursor = Cursor(sequence)
 
-        with open(filename) as f:
-            fd = f.fileno()
-            ds.bugmode = False
-            ds.f = fdopen(fd, b"r")
+        memcpy(&sw, &self._sw, sizeof(csw))
+
+        try:
+            sw.genespace = aragorn.NT
+            sw.genes = <gene*> calloc(sw.genespace, sizeof(gene))
+            if sw.genes is NULL:
+                raise MemoryError("failed to allocate data")
 
             with nogil:
-                aragorn.bopt_fastafile(&ds, &self._sw)
+                nt = self._bopt_cursor(cursor, &ds, &sw)
 
-        genes = []
-        for i in range(89):
-            g = Gene.__new__(Gene)
-            memcpy(&g._gene, &self._sw.genes[i], sizeof(gene))
-            genes.append(g)
-        
-        return genes
+            genes = []
+            for i in range(nt):
+                genes.append(Gene._new_gene(&sw.genes[i], sw.geneticcode))
+        finally:
+            free(sw.genes)
 
-    def run_str(self, sequence):
-        cdef Gene         g
-        cdef data_set     ds
-        cdef int          fd
-
-        cdef Cursor cursor = Cursor(sequence)
-
-        with nogil:
-            self._bopt_cursor(cursor, &ds, &self._sw)
-
-        genes = []
-        for i in range(89):
-            g = Gene.__new__(Gene)
-            memcpy(&g._gene, &self._sw.genes[i], sizeof(gene))
-            genes.append(g)
-        
         return genes
 
     cdef int _bopt_cursor(
-        self, 
-        Cursor cursor, 
-        data_set* d, 
+        self,
+        Cursor cursor,
+        data_set* d,
         csw* sw
     ) except -1 nogil:
         cdef int nt
@@ -279,11 +290,11 @@ cdef class RNAFinder:
 
         cdef long rewind
         cdef long drewind
-        cdef FILE *f 
-        
+        cdef FILE *f
+
         f = sw.f
         rewind = aragorn.MAXTAGDIST + 20
-        
+
         if sw.trna or sw.mtrna:
             tmaxlen = aragorn.MAXTRNALEN + sw.maxintronlen
             if rewind < tmaxlen:
@@ -294,11 +305,11 @@ cdef class RNAFinder:
         if sw.peptide:
             if sw.tagthresh >= 5 and rewind < aragorn.TSWEEP:
                 rewind = aragorn.TSWEEP
-        
+
         sw.loffset = rewind
         sw.roffset = rewind
         drewind = 2 * rewind
-        
+
         d.filepointer = 0
         d.ns = 0
         d.nf = 0
@@ -314,7 +325,7 @@ cdef class RNAFinder:
         # reset dataset / cursor position
         d.ps = 0
         cursor.pos = 0
-            
+
         # report statistics
         # if sw.verbose:
         #     fprintf(stderr, "%s\n", d.seqname)
@@ -322,32 +333,32 @@ cdef class RNAFinder:
         #     fprintf(stderr, "Mean G+C content = %2.1f%%\n", 100.0 * d.gc)
         # if sw.batch < 2:
         #     fprintf(f, ">%s\n", d.seqname)
-        
+
         aragorn.init_gene(sw.genes, 0, aragorn.NT)
         nt = self._bopt_cursor_iter(
             cursor,
-            d, 
-            sw, 
+            d,
+            sw,
             &seq[0],
             &cseq[0],
             &wseq[0],
-            rewind, 
+            rewind,
             drewind,
         )
-        
+
         return nt
 
     cdef int _bopt_cursor_iter(
-        self, 
+        self,
         Cursor cursor,
-        data_set* d, 
-        csw* sw, 
+        data_set* d,
+        csw* sw,
 
         int* seq,
         int* cseq,
         int* wseq,
 
-        long rewind, 
+        long rewind,
         long drewind,
     ) except -1 nogil:
         cdef int i
@@ -368,15 +379,15 @@ cdef class RNAFinder:
         cdef bint loop
         cdef bint NX
         cdef bint SH
-        
+
         nt = 0
         flag = 0
         start = 1L
-        
+
         loop = True
         NX = True
         SH = True
-        
+
         se = seq
         if sw.linear:
             for i in range(rewind):
@@ -417,7 +428,7 @@ cdef class RNAFinder:
                 loop = True
                 SH = True
                 NX = False
-            
+
             else:
                 swrap = wseq
                 sc = seq + drewind
@@ -427,7 +438,7 @@ cdef class RNAFinder:
 
         # weird ass loop to emulate a GOTO
         while loop:
-            
+
             # label NX: next
             sc = seq + aragorn.LSEQ
             if NX:
@@ -446,7 +457,7 @@ cdef class RNAFinder:
 
                         SH = True
                         break
-        
+
             # label SH: search
             if SH:
                 len = (int) (se - seq)
@@ -462,18 +473,18 @@ cdef class RNAFinder:
                         fprintf(stderr, "Searching from 1 to %ld\n", vstop)
                     else:
                         fprintf(stderr, "Searching from %ld to %ld\n", vstart, vstop)
-                
+
                 if (sw.both != 1):
                     sw.start = start
                     sw.comp = 0
                     nt = aragorn.tmioptimise(d, seq, len, nt, sw)
-                
+
                 if (sw.both > 0):
                     aragorn.sense_switch(seq, cseq, len)
                     sw.start = start + len
                     sw.comp = 1
                     nt = aragorn.tmioptimise(d, cseq, len, nt, sw)
-                
+
                 if not flag:
                     s = seq
                     sf = se - drewind
@@ -484,17 +495,20 @@ cdef class RNAFinder:
                     # goto NX
                     NX = SH = loop = True
                     continue
-                
+
                 if nt < 1:
                     d.nf += 1
                 if sw.maxintronlen > 0:
                     aragorn.remove_overlapping_trna(d, nt, sw)
                 if sw.updatetmrnatags:
                     aragorn.update_tmrna_tag_database(sw.genes, nt, sw)
-                aragorn.batch_gene_set(d, nt, sw)
+
+                # FIXME: here should sort genes and filter them with `gene_sort`
+                # aragorn.batch_gene_set(d, nt, sw)
+
                 if sw.verbose:
                     fprintf(stderr, "%s\nSearch Finished\n\n", d.seqname)
-                
+
                 d.ns += 1
                 # exit loop
                 loop = False
@@ -513,4 +527,3 @@ cdef class RNAFinder:
     #     fputc('\n', f)
     # if sw.updatetmrnatags:
     #     aragorn.report_new_tmrna_tags(sw)
-        

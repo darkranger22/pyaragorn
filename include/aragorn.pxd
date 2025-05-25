@@ -149,7 +149,7 @@ cdef extern from "aragorn.h" nogil:
         int tvloop
         int cloop7
         int peptide
-        gencode geneticcode
+        int geneticcode
         int ngcmod
         int gcmod[MAXGCMOD]
         int gcfix
@@ -230,6 +230,7 @@ cdef extern from "aragorn.h" nogil:
         double eref[NS]
         int tmrna_struct[200]
 
+    char* aa(int* anticodon, csw* sw)
     void bopt_fastafile(data_set *d, csw *sw)
     void batch_gene_set(data_set* d, int nt, csw* sw)
     char cbase(int c)
