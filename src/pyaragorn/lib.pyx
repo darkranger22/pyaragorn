@@ -18,6 +18,8 @@ from aragorn cimport csw, data_set, gene
 
 import os
 
+# --- Helpers ------------------------------------------------------------------
+
 cdef extern from * nogil:
     Py_UCS4 PyUnicode_READ(int kind, const void* data, size_t pos)
 
@@ -55,6 +57,12 @@ cdef extern from * nogil:
 cdef inline long int sq(data_set* d, long int pos) nogil:
     return (pos + d.psmax - 1) % d.psmax + 1
 
+# --- Constants ----------------------------------------------------------------
+
+cdef set _TRANSLATION_TABLES  = set(range(1, 7)) | set(range(9, 17)) | set(range(21, 27)) | {29, 30} | {32, 33}
+
+
+# --- Classes ------------------------------------------------------------------
 
 cdef class Gene:
 
@@ -93,7 +101,7 @@ cdef class Gene:
         return aragorn.seqlen(&self._gene)
 
     @property
-    def seq(self):
+    def sequence(self):
         cdef long  i
         cdef int   length = aragorn.seqlen(&self._gene)
         return ''.join([
@@ -103,7 +111,9 @@ cdef class Gene:
 
     @property
     def energy(self):
-        return self._gene.energy
+        cdef csw sw
+        default_sw(&sw)
+        return aragorn.nenergy(&self._gene, &sw)
 
     @property
     def strand(self):
@@ -233,53 +243,77 @@ cdef class Cursor:
 cdef class RNAFinder:
     cdef csw _sw
 
-    def __init__(self):
+    def __init__(
+        self,
+        int translation_table = 1,
+    ):
         default_sw(&self._sw)
         self._sw.trna = True
         self._sw.tmrna = True
         self._sw.f = stdout
         self._sw.verbose = False #True
 
-        self._sw.genespace = aragorn.NT
-        self._sw.genes = <gene*> calloc(self._sw.genespace, sizeof(gene))
-        if self._sw.genes is NULL:
-            raise MemoryError("failed to allocate data")
+        if translation_table not in _TRANSLATION_TABLES:
+            raise ValueError(f"invalid translation table: {translation_table!r}")
+        self._sw.geneticcode = translation_table
 
-    def __dealloc__(self):
-        free(self._sw.genes)
+    def find_rna(self, object sequence):
+        """Find RNA genes in the input DNA sequence.
 
-    def find_rna(self, sequence):
+        Arguments:
+            sequence (`str` or buffer): The nucleotide sequence to process, 
+                either as a string of nucleotides (upper- or lowercase), or
+                as an object implementing the buffer protocol.
+
+        Returns:
+            `list` of `~pyaragorn.Gene`: A list of `Gene` corresponding to 
+            RNA genes detected in the sequence according to the `RNAFinder` 
+            parameters.
+
+        """
         cdef Gene     g
         cdef data_set ds
+        cdef int      n
         cdef int      nt
         cdef csw      sw
+        cdef int*     vsort  = NULL
         cdef Cursor   cursor = Cursor(sequence)
 
+        # copy parameters to ensure the `find_rna` method is re-entrant
         memcpy(&sw, &self._sw, sizeof(csw))
 
         try:
-            sw.genespace = aragorn.NT
-            sw.genes = <gene*> calloc(sw.genespace, sizeof(gene))
-            if sw.genes is NULL:
-                raise MemoryError("failed to allocate data")
-
             with nogil:
-                nt = self._bopt_cursor(cursor, &ds, &sw)
-
+                # allocate memory for the result genes
+                sw.genespace = aragorn.NT
+                sw.genes = <gene*> calloc(sw.genespace, sizeof(gene))
+                if sw.genes is NULL:
+                    raise MemoryError("failed to allocate memory")
+                # detect RNA genes with the "batched" algorithm
+                nt = self._bopt(cursor, &ds, &sw)
+                # allocate array for sorting genes
+                vsort = <int*> calloc(nt, sizeof(int))
+                if vsort is NULL:
+                    raise MemoryError("failed to allocate memory")
+                # sort and threshold genes
+                n = aragorn.gene_sort(&ds, nt, vsort, &sw)
+            # recover genes
             genes = []
-            for i in range(nt):
-                genes.append(Gene._new_gene(&sw.genes[i], sw.geneticcode))
+            for i in range(n):
+                genes.append(Gene._new_gene(&sw.genes[vsort[i]], sw.geneticcode))
         finally:
+            free(vsort)
             free(sw.genes)
 
         return genes
 
-    cdef int _bopt_cursor(
+    cdef int _bopt(
         self,
         Cursor cursor,
         data_set* d,
         csw* sw
     ) except -1 nogil:
+        # adapted from bopt_fastafile to use with our own
         cdef int nt
         cdef int seq[((2 * aragorn.LSEQ) + aragorn.WRAP) + 1]
         cdef int cseq[((2 * aragorn.LSEQ) + aragorn.WRAP) + 1]
@@ -290,11 +324,10 @@ cdef class RNAFinder:
 
         cdef long rewind
         cdef long drewind
-        cdef FILE *f
+        cdef long tmaxlen
 
-        f = sw.f
+        # compute width of sliding windows
         rewind = aragorn.MAXTAGDIST + 20
-
         if sw.trna or sw.mtrna:
             tmaxlen = aragorn.MAXTRNALEN + sw.maxintronlen
             if rewind < tmaxlen:
@@ -310,6 +343,7 @@ cdef class RNAFinder:
         sw.roffset = rewind
         drewind = 2 * rewind
 
+        # reinitialize dataset book-keeping 
         d.filepointer = 0
         d.ns = 0
         d.nf = 0
@@ -322,49 +356,17 @@ cdef class RNAFinder:
         # count GC% and compute sequence length
         d.gc = cursor._gc(d)
         d.psmax = d.ps
+
         # reset dataset / cursor position
         d.ps = 0
         cursor.pos = 0
 
-        # report statistics
-        # if sw.verbose:
-        #     fprintf(stderr, "%s\n", d.seqname)
-        #     fprintf(stderr, "%ld nucleotides in sequence\n", d.psmax)
-        #     fprintf(stderr, "Mean G+C content = %2.1f%%\n", 100.0 * d.gc)
-        # if sw.batch < 2:
-        #     fprintf(f, ">%s\n", d.seqname)
-
+        # cleanly initialize gene array
         aragorn.init_gene(sw.genes, 0, aragorn.NT)
-        nt = self._bopt_cursor_iter(
-            cursor,
-            d,
-            sw,
-            &seq[0],
-            &cseq[0],
-            &wseq[0],
-            rewind,
-            drewind,
-        )
 
-        return nt
-
-    cdef int _bopt_cursor_iter(
-        self,
-        Cursor cursor,
-        data_set* d,
-        csw* sw,
-
-        int* seq,
-        int* cseq,
-        int* wseq,
-
-        long rewind,
-        long drewind,
-    ) except -1 nogil:
         cdef int i
-        cdef int nt
         cdef bint flag
-        cdef int len
+        cdef int length
         cdef int *s
         cdef int *sf
         cdef int *se
@@ -372,7 +374,6 @@ cdef class RNAFinder:
         cdef int *swrap
         cdef long gap
         cdef long start
-        cdef long tmaxlen
         cdef long vstart
         cdef long vstop
         cdef double sens
@@ -454,36 +455,35 @@ cdef class RNAFinder:
                             while (swrap < sc):
                                 postincrement(se)[0] = postincrement(swrap)[0]
                         flag = 1
-
                         SH = True
                         break
 
             # label SH: search
             if SH:
-                len = (int) (se - seq)
+                length = <int> (se - seq)
 
                 with gil:
                     PyErr_CheckSignals()
 
-                if (sw.verbose):
-                    vstart = sq(d, start + sw.loffset)
-                    vstop = sq(d, ((start + len) - sw.roffset) - 1)
-                    if (vstop < vstart):
-                        fprintf(stderr, "Searching from %ld to %ld\n", vstart, d.psmax)
-                        fprintf(stderr, "Searching from 1 to %ld\n", vstop)
-                    else:
-                        fprintf(stderr, "Searching from %ld to %ld\n", vstart, vstop)
+                # if (sw.verbose):
+                #     vstart = sq(d, start + sw.loffset)
+                #     vstop = sq(d, ((start + length) - sw.roffset) - 1)
+                #     if (vstop < vstart):
+                #         fprintf(stderr, "Searching from %ld to %ld\n", vstart, d.psmax)
+                #         fprintf(stderr, "Searching from 1 to %ld\n", vstop)
+                #     else:
+                #         fprintf(stderr, "Searching from %ld to %ld\n", vstart, vstop)
 
                 if (sw.both != 1):
                     sw.start = start
                     sw.comp = 0
-                    nt = aragorn.tmioptimise(d, seq, len, nt, sw)
+                    nt = aragorn.tmioptimise(d, seq, length, nt, sw)
 
                 if (sw.both > 0):
-                    aragorn.sense_switch(seq, cseq, len)
-                    sw.start = start + len
+                    aragorn.sense_switch(seq, cseq, length)
+                    sw.start = start + length
                     sw.comp = 1
-                    nt = aragorn.tmioptimise(d, cseq, len, nt, sw)
+                    nt = aragorn.tmioptimise(d, cseq, length, nt, sw)
 
                 if not flag:
                     s = seq
@@ -491,7 +491,7 @@ cdef class RNAFinder:
                     se = seq + drewind
                     while (s < se):
                         postincrement(s)[0] = postincrement(sf)[0]
-                    start += len - drewind
+                    start += length - drewind
                     # goto NX
                     NX = SH = loop = True
                     continue
@@ -506,8 +506,8 @@ cdef class RNAFinder:
                 # FIXME: here should sort genes and filter them with `gene_sort`
                 # aragorn.batch_gene_set(d, nt, sw)
 
-                if sw.verbose:
-                    fprintf(stderr, "%s\nSearch Finished\n\n", d.seqname)
+                # if sw.verbose:
+                #     fprintf(stderr, "%s\nSearch Finished\n\n", d.seqname)
 
                 d.ns += 1
                 # exit loop
