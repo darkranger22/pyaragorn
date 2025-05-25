@@ -18,8 +18,8 @@ parser.add_argument("--cpp", default="cpp", help="name of the C preprocessor exe
 args = parser.parse_args()
 
 # record contents, includes & defines
-contents = ["typedef void FILE;"]  # needed for pycparser to be happy about 
-includes = []
+contents = ["typedef void FILE;\n"]  # needed for pycparser to be happy about 
+includes = ["#include <stdint.h>\n"]
 defines = []
 
 # load file, extract defines and includes
@@ -171,6 +171,10 @@ node.decl.type.args.params.insert(0,
         )
     )
 )
+
+# reduce size of aamap array (int to int8_t)
+aamap = next(a for a in arrays if a.name == "aamap")
+aamap.type.type.type.type = pycparser.c_ast.ID(name="int8_t")
 
 # remove main function
 main = next(f for f in functions if f.decl.name == "main")
