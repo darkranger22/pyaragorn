@@ -173,9 +173,14 @@ node.decl.type.args.params.insert(0,
 )
 
 # remove main function
-node = next(f for f in functions if f.decl.name == "main")
-main = node
-functions.remove(node)
+main = next(f for f in functions if f.decl.name == "main")
+functions.remove(main)
+
+# remove helpmenu array and function
+helpmenu = next(a for a in arrays if a.name == "helpmenu")
+arrays.remove(helpmenu)
+aragorn_help_menu = next(f for f in functions if f.decl.name == "aragorn_help_menu")
+functions.remove(aragorn_help_menu)
 
 
 # --- Emit code ----------------------------------------------------------------

@@ -14,6 +14,8 @@ add_custom_command(
         --cpp ${CMAKE_C_COMPILER}
     MAIN_DEPENDENCY
         ${ARAGORN_C}
+    DEPENDS
+        ${PROJECT_SOURCE_DIR}/src/scripts/libraryfier.py
     VERBATIM
 )
 
