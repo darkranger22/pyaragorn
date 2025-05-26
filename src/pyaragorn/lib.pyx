@@ -17,6 +17,7 @@ cimport aragorn
 from aragorn cimport csw, data_set, gene
 
 import os
+from functools import cached_property
 
 # --- Helpers ------------------------------------------------------------------
 
@@ -53,9 +54,9 @@ cdef extern from * nogil:
     """
     void default_sw(csw* sw)
 
-
 cdef inline long int sq(data_set* d, long int pos) nogil:
     return (pos + d.psmax - 1) % d.psmax + 1
+
 
 # --- Constants ----------------------------------------------------------------
 
@@ -65,6 +66,8 @@ cdef set _TRANSLATION_TABLES  = set(range(1, 7)) | set(range(9, 17)) | set(range
 # --- Classes ------------------------------------------------------------------
 
 cdef class Gene:
+    """A gene identified by ARAGORN.
+    """
 
     cdef gene _gene
     cdef int  _genetic_code
@@ -84,24 +87,51 @@ cdef class Gene:
         obj._genetic_code = _genetic_code
         return obj
 
+    def __sizeof__(self):
+        return sizeof(self)
+
     @property
     def type(self):
         return ["tRNA", "tmRNA", "", "", "CDS"][<int> self._gene.genetype]
 
     @property
-    def start(self):
+    def begin(self):
+        """`int`: The sequence coordinate at which the gene begins.
+
+        Hint:
+            This coordinate is 1-based, inclusive. To use it to index 
+            a Python array or string, subtract one.
+
+        """
         return self._gene.start
 
     @property
-    def stop(self):
+    def end(self):
+        """`int`: The sequence coordinate at which the gene end.
+
+        Hint:
+            This coordinate is 1-based, inclusive. To use it to index 
+            a Python array or string, subtract one.
+
+        """
         return self._gene.stop
 
     @property
     def length(self):
+        """`int`: The length of the RNA gene.
+        """
         return aragorn.seqlen(&self._gene)
 
     @property
+    def strand(self):
+        """`int`: *-1* if the gene is on the reverse strand, *+1* otherwise.
+        """
+        return -1 if self._gene.comp else +1
+
+    @cached_property
     def sequence(self):
+        """`str`: The sequence of the RNA gene.
+        """
         cdef long  i
         cdef int   length = aragorn.seqlen(&self._gene)
         return ''.join([
@@ -111,21 +141,27 @@ cdef class Gene:
 
     @property
     def energy(self):
+        """`float`: The approximated energy of the RNA structure.
+        """
         cdef csw sw
-        default_sw(&sw)
+        default_sw(&sw) # FIXME?
         return aragorn.nenergy(&self._gene, &sw)
-
-    @property
-    def strand(self):
-        return -1 if self._gene.comp else +1
-
-
 
 
 cdef class TRNAGene(Gene):
+    """A transfer RNA (tRNA) gene.
+    """
 
     @property
     def amino_acid(self):
+        """`str` or (`str`, `str`): The 3-letter amino-acid(s) for this gene.
+
+        Hint:
+            A single string is given if the anticodon loop was identified 
+            with exactly 3 nucleotides. Otherwise, this property stores
+            a pair of amino-acids.
+
+        """
         cdef csw sw
         cdef int* s = self._gene.seq + self._gene.anticodon
         (<int*> &sw.geneticcode)[0] = self._genetic_code
@@ -144,6 +180,8 @@ cdef class TRNAGene(Gene):
 
     @property
     def anticodon(self):
+        """`str`: The anticodon of the tRNA gene.
+        """
         cdef tuple c
         cdef int*  s = self._gene.seq + self._gene.anticodon
         if self._gene.cloop == 6:
@@ -156,6 +194,8 @@ cdef class TRNAGene(Gene):
 
     @property
     def anticodon_offset(self):
+        """`int`: The offset in the gene at which the anticodon is located.
+        """
         cdef int x = 1 + self._gene.anticodon
         if self._gene.nintron > 0 and self._gene.intron <= self._gene.anticodon:
             x += self._gene.nintron
@@ -163,25 +203,18 @@ cdef class TRNAGene(Gene):
 
 
 cdef class TMRNAGene(Gene):
-    pass
+    """A transfer-messenger RNA (tmRNA) gene.
+    """
 
 
-
-
-cdef int[256] _map = [
-    -4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,
-    -4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,
-    -4,-4,-4,-4,-4,-4, 5,-3,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,
-    -4,-4,-2,-4,-4, 0, 4, 1, 4,-4,-4, 2, 4, -4,-4, 4,-5, 4, 4,
-    -4,-4,-4, 4, 4, 3, 3, 4, 4,-4, 4,-4,-4,-4,-4,-2,5,-4,0,4,1,4,
-    -4,-4,2,4,-4,-4,4,-5,4,4,-4,-4,-4, 4,4,3,3,4,4,-4,
-    4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,
-    -4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,
-    -4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,
-    -4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,
-    -4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,
-    -4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,
-    -4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4,-4
+cdef int[128] _map = [
+    -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, 
+    -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, 
+    -4, -4, -4, -4, -4, -4, -4, -4,  5, -3, -4, -4, -4, -4, -4, -4, -4, -4, -4, 
+    -4, -4, -4, -4, -4, -2, -4, -4,  0,  4,  1,  4, -4, -4,  2,  4, -4, -4,  4, 
+    -5,  4,  4, -4, -4, -4,  4,  4,  3,  3,  4,  4, -4,  4, -4, -4, -4, -4, -2, 
+     5, -4,  0,  4,  1,  4, -4, -4,  2,  4, -4, -4,  4, -5,  4,  4, -4, -4, -4, 
+     4,  4,  3,  3,  4,  4, -4,  4, -4, -4, -4, -4, -4, -4
 ]
 
 
@@ -246,10 +279,13 @@ cdef class RNAFinder:
     def __init__(
         self,
         int translation_table = 1,
+        *,
+        bint trna = True,
+        bint tmrna = True,
     ):
         default_sw(&self._sw)
-        self._sw.trna = True
-        self._sw.tmrna = True
+        self._sw.trna = trna
+        self._sw.tmrna = tmrna
         self._sw.f = stdout
         self._sw.verbose = False #True
 
