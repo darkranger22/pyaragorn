@@ -219,11 +219,12 @@ cdef int[128] _map = [
 
 
 cdef class Cursor:
-    cdef object obj
-    cdef const void*  data
-    cdef int    kind
-    cdef size_t length
-    cdef size_t pos
+    cdef object      obj
+    cdef const void* data
+    cdef int         kind
+    cdef size_t      length
+    cdef size_t      pos
+    cdef data_set    ds
 
     def __init__(self, obj):
         cdef const unsigned char[::1] view
@@ -236,10 +237,29 @@ cdef class Cursor:
             self.kind = PyUnicode_1BYTE_KIND
             self.data = &view[0]
             self.length = view.shape[0]
+        
+        # keep a reference to the data source
         self.obj = obj
+
+        # reinitialize dataset book-keeping 
+        self.ds.filepointer = 0
+        self.ds.ns = 0
+        self.ds.nf = 0
+        self.ds.nextseq = 0L
+        self.ds.nextseqoff = 0L
+        self.ds.seqstart = 0
+        self.ds.seqstartoff = 0
+        self.ds.ps = 0
+
+        # count GC% and compute sequence length
+        self.ds.gc = self._gc()
+        self.ds.psmax = self.ds.ps
+
+        # reset dataset / cursor position
+        self.ds.ps = 0
         self.pos = 0
 
-    cdef int _forward(self, data_set* d) noexcept nogil:
+    cdef int _forward(self) noexcept nogil:
         cdef Py_UCS4 x
         cdef int     base
 
@@ -254,23 +274,23 @@ cdef class Cursor:
 
         base = _map[x]
         if base >= 0:
-            d.ps += 1
+            self.ds.ps += 1
             return base
         else:
             return 5 #aragorn.NOBASE
 
-    cdef double _gc(self, data_set* d) noexcept nogil:
+    cdef double _gc(self) noexcept nogil:
         cdef int  base
         cdef long i
         cdef long ngc  = 0
 
         for i in range(self.length):
-            base = self._forward(d)
+            base = self._forward()
             if base == -1:
                 break
             ngc += (base == <int> aragorn.base.Cytosine) or (base == <int> aragorn.base.Guanine)
 
-        return <double> ngc / <double> d.ps
+        return <double> ngc / <double> self.ds.ps
 
 
 cdef class RNAFinder:
@@ -308,7 +328,6 @@ cdef class RNAFinder:
 
         """
         cdef Gene     g
-        cdef data_set ds
         cdef int      n
         cdef int      nt
         cdef csw      sw
@@ -326,13 +345,13 @@ cdef class RNAFinder:
                 if sw.genes is NULL:
                     raise MemoryError("failed to allocate memory")
                 # detect RNA genes with the "batched" algorithm
-                nt = self._bopt(cursor, &ds, &sw)
+                nt = self._bopt(cursor, &sw)
                 # allocate array for sorting genes
                 vsort = <int*> calloc(nt, sizeof(int))
                 if vsort is NULL:
                     raise MemoryError("failed to allocate memory")
                 # sort and threshold genes
-                n = aragorn.gene_sort(&ds, nt, vsort, &sw)
+                n = aragorn.gene_sort(&cursor.ds, nt, vsort, &sw)
             # recover genes
             genes = []
             for i in range(n):
@@ -346,21 +365,34 @@ cdef class RNAFinder:
     cdef int _bopt(
         self,
         Cursor cursor,
-        data_set* d,
         csw* sw
     ) except -1 nogil:
-        # adapted from bopt_fastafile to use with our own
+        # adapted from bopt_fastafile to use with our own `Cursor` dataset
         cdef int nt
         cdef int seq[((2 * aragorn.LSEQ) + aragorn.WRAP) + 1]
         cdef int cseq[((2 * aragorn.LSEQ) + aragorn.WRAP) + 1]
         cdef int wseq[(2 * aragorn.WRAP) + 1]
-
         cdef long ngc
         cdef int base
-
         cdef long rewind
         cdef long drewind
         cdef long tmaxlen
+        cdef int i
+        cdef bint flag
+        cdef int length
+        cdef int *s
+        cdef int *sf
+        cdef int *se
+        cdef int *sc
+        cdef int *swrap
+        cdef long gap
+        cdef long start
+        cdef long vstart
+        cdef long vstop
+        cdef double sens
+        cdef bint loop
+        cdef bint NX
+        cdef bint SH
 
         # compute width of sliding windows
         rewind = aragorn.MAXTAGDIST + 20
@@ -379,43 +411,8 @@ cdef class RNAFinder:
         sw.roffset = rewind
         drewind = 2 * rewind
 
-        # reinitialize dataset book-keeping 
-        d.filepointer = 0
-        d.ns = 0
-        d.nf = 0
-        d.nextseq = 0L
-        d.nextseqoff = 0L
-        d.seqstart = 0
-        d.seqstartoff = 0
-        d.ps = 0
-
-        # count GC% and compute sequence length
-        d.gc = cursor._gc(d)
-        d.psmax = d.ps
-
-        # reset dataset / cursor position
-        d.ps = 0
-        cursor.pos = 0
-
         # cleanly initialize gene array
         aragorn.init_gene(sw.genes, 0, aragorn.NT)
-
-        cdef int i
-        cdef bint flag
-        cdef int length
-        cdef int *s
-        cdef int *sf
-        cdef int *se
-        cdef int *sc
-        cdef int *swrap
-        cdef long gap
-        cdef long start
-        cdef long vstart
-        cdef long vstop
-        cdef double sens
-        cdef bint loop
-        cdef bint NX
-        cdef bint SH
 
         nt = 0
         flag = 0
@@ -431,16 +428,16 @@ cdef class RNAFinder:
                 postincrement(se)[0] = aragorn.NOBASE
             start -= rewind
         else:
-            if d.psmax <= drewind:
-                gap = drewind - d.psmax
+            if cursor.ds.psmax <= drewind:
+                gap = drewind - cursor.ds.psmax
                 sc = se + gap
                 while se < sc:
                     postincrement(se)[0] = aragorn.NOBASE
 
                 swrap = wseq
-                sc = se + d.psmax
+                sc = se + cursor.ds.psmax
                 while se < sc:
-                    se[0] = cursor._forward(d) #aragorn.move_forward(d)
+                    se[0] = cursor._forward()
                     postincrement(swrap)[0] = postincrement(se)[0]
 
                 sc = swrap + gap
@@ -448,7 +445,7 @@ cdef class RNAFinder:
                     postincrement(swrap)[0] = aragorn.NOBASE
 
                 swrap = wseq
-                sc = swrap + d.psmax
+                sc = swrap + cursor.ds.psmax
                 while swrap < sc:
                     postincrement(se)[0] = postincrement(swrap)[0]
 
@@ -470,7 +467,7 @@ cdef class RNAFinder:
                 swrap = wseq
                 sc = seq + drewind
                 while se < sc:
-                    se[0] = cursor._forward(d) #aragorn.move_forward(d)
+                    se[0] = cursor._forward()
                     postincrement(swrap)[0] = postincrement(se)[0]
 
         # weird ass loop to emulate a GOTO
@@ -480,8 +477,8 @@ cdef class RNAFinder:
             sc = seq + aragorn.LSEQ
             if NX:
                 while (se < sc):
-                    postincrement(se)[0] = cursor._forward(d) #aragorn.move_forward(d)
-                    if d.ps >= d.psmax:
+                    postincrement(se)[0] = cursor._forward()
+                    if cursor.ds.ps >= cursor.ds.psmax:
                         if sw.linear:
                             for i in range(rewind):
                                 postincrement(se)[0] = aragorn.NOBASE
@@ -513,13 +510,13 @@ cdef class RNAFinder:
                 if (sw.both != 1):
                     sw.start = start
                     sw.comp = 0
-                    nt = aragorn.tmioptimise(d, seq, length, nt, sw)
+                    nt = aragorn.tmioptimise(&cursor.ds, seq, length, nt, sw)
 
                 if (sw.both > 0):
                     aragorn.sense_switch(seq, cseq, length)
                     sw.start = start + length
                     sw.comp = 1
-                    nt = aragorn.tmioptimise(d, cseq, length, nt, sw)
+                    nt = aragorn.tmioptimise(&cursor.ds, cseq, length, nt, sw)
 
                 if not flag:
                     s = seq
@@ -533,9 +530,9 @@ cdef class RNAFinder:
                     continue
 
                 if nt < 1:
-                    d.nf += 1
+                    cursor.ds.nf += 1
                 if sw.maxintronlen > 0:
-                    aragorn.remove_overlapping_trna(d, nt, sw)
+                    aragorn.remove_overlapping_trna(&cursor.ds, nt, sw)
                 if sw.updatetmrnatags:
                     aragorn.update_tmrna_tag_database(sw.genes, nt, sw)
 
@@ -545,7 +542,7 @@ cdef class RNAFinder:
                 # if sw.verbose:
                 #     fprintf(stderr, "%s\nSearch Finished\n\n", d.seqname)
 
-                d.ns += 1
+                cursor.ds.ns += 1
                 # exit loop
                 loop = False
 
