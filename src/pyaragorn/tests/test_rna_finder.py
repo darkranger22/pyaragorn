@@ -24,14 +24,14 @@ class TestMeta(unittest.TestCase):
             result, seq, ss = expected
             if gene.type == "tRNA":
                 matched = _TRNA_RX.match(result)
-                _, aa, complement, start, stop, energy, offset, anticodon = matched.groups()
+                _, aa, complement, begin, end, energy, offset, anticodon = matched.groups()
                 self.assertEqual(gene.amino_acid, aa)
-                self.assertEqual(gene.start, int(start))
-                self.assertEqual(gene.stop, int(stop))
+                self.assertEqual(gene.begin, int(begin))
+                self.assertEqual(gene.end, int(end))
                 self.assertEqual(gene.anticodon_offset, int(offset))
                 self.assertEqual(gene.anticodon, anticodon)
                 self.assertEqual(gene.strand, -1 if complement == "c" else +1)
                 self.assertAlmostEqual(gene.energy, float(energy), places=1)
-                self.assertEqual(gene.sequence.lower(), seq)
+                self.assertEqual(gene.sequence().lower(), seq)
 
 

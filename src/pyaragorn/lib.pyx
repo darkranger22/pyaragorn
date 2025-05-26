@@ -17,16 +17,19 @@ Example:
 
         >>> import gzip
         >>> import Bio.SeqIO
-        >>> with gzip.open("KK037166.fna.gz", "rt") as f:
+        >>> with gzip.open("CP001621.fna.gz", "rt") as f:
         ...     record = Bio.SeqIO.read(f, "fasta")
 
-    Then use PyARAGORN to find the tRNA and tmRNA genes using the
+    Then use PyARAGORN to find the tRNA genes using the
     bacterial genetic code (translation table 11):
 
         >>> import pyaragorn
-        >>> p = pyaragorn.RNAGeneFinder(translation_table=11)
-        >>> for gene in p.find_rna(record.seq.encode()):
-        ...     print(gene.type, gene.begin, gene.end)
+        >>> rna_finder = pyaragorn.RNAFinder(11, trna=True, tmrna=False)
+        >>> for gene in rna_finder.find_rna(record.seq.encode()):
+        ...     print(gene.anticodon, gene.amino_acid, gene.begin, gene.end)
+        tag Leu 87124 87207
+        ttt Lys 87210 87285
+        ...
 
     The gene coordinates are 1-indexed, inclusive, similarly to
     `Pyrodigal <https://pyrodigal.readthedocs.io>`_ genes.
