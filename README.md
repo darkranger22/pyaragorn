@@ -20,14 +20,14 @@
 
 ## 🗺️ Overview
 
-[ARAGORN](https://gitlab.com/mcfrith/tantan) is a fast method developed
-by Laslett & Canback[\[1\]](#ref1) to identify tRNA and tmRNA genes 
-in genomic sequences using heuristics to detect potential high-scoring
+[ARAGORN](https://trna.se) is a fast method developed
+by Dean Laslett & Björn Canback[\[1\]](#ref1) to identify tRNA and tmRNA 
+genes in genomic sequences using heuristics to detect potential high-scoring
 stem-loop structures. The complementary method ARWEN, developed by the same 
 authors[\[2\]](#ref2) to support the detection of metazoan mitochondrial 
 RNA (mtRNA) genes, was later integrated into ARAGORN.
 
-PyARAGORN is a Python module that provides bindings to ARAGORN and ARWEN 
+`pyaragorn` is a Python module that provides bindings to ARAGORN and ARWEN 
 using [Cython](https://cython.org/). It directly interacts with the 
 ARAGORN internals, which has the following advantages:
 
@@ -37,24 +37,31 @@ ARAGORN internals, which has the following advantages:
 - **no intermediate files**: Everything happens in memory, in a Python object
   you fully control, so you don't have to invoke the ARAGORN CLI using a
   sub-process and temporary files. Sequences can be passed directly as
-  strings or bytes, which avoids the overhead of formatting your input to
-  FASTA for ARAGORN.
+  strings, bytes, or any buffer objects, which avoids the overhead of 
+  formatting your input to FASTA for ARAGORN.
 - **no output parsing**: The detected RNA genes are returned as Python 
   objects with transparent attributes, which facilitate handling the output
   of ARAGORN compared to parsing the output tables.
-- **same results**: PyARAGORN is tested to make sure it produces
-  exactly the same results as ARAGORN `v1.2.41`. 
+- **same results**: PyARAGORN is tested to ensure it produces the same results 
+  as ARAGORN `v1.2.41`, the latest release. 
 
 
-### 📋 Features
+<!-- ### 📋 Features -->
 
 
-### 🧶 Thread-safety
+<!-- ### 🧶 Thread-safety -->
 
 
 ## 🔧 Installing
 
 This project is supported on Python 3.7 and later.
+
+For now, PyARAGORN can be installed from the GitHub repository, which will
+require compiling the code of the Cython extension:
+
+```console
+$ pip install git+https://github.com/althonos/pyaragorn
+```
 
 <!-- PyARAGORN can be installed directly from [PyPI](https://pypi.org/project/pyaragorn/),
 which hosts some pre-built wheels for the x86-64 architecture (Linux/MacOS/Windows)
@@ -67,9 +74,10 @@ $ pip install pyaragorn
 ## 💡 Example
 
 Let's load a sequence from a
-[GenBank](http://www.insdc.org/files/feature_table.html) file, use a `GeneFinder`
-to find all the genes it contains, and print the proteins in two-line FASTA
-format.
+[GenBank](http://www.insdc.org/files/feature_table.html) file, 
+use a `RNAFinder` to find all the tRNA genes it contains, 
+and print the anticodon and corresponding amino-acids of the detected 
+tRNAs.
 
 
 ### 🔬 [Biopython](https://github.com/biopython/biopython)
