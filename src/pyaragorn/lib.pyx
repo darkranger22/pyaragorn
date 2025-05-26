@@ -270,11 +270,11 @@ cdef class TMRNAGene(Gene):
     """
 
     @property
-    def peptide_offset(self):
+    def cds_offset(self):
         return self._gene.tps + 1
 
     @property
-    def peptide_length(self):
+    def cds_length(self):
         """`int`: The length of the peptide (in nucleotides).
         """
         cdef int  tpe    = self._gene.tpe
@@ -289,9 +289,9 @@ cdef class TMRNAGene(Gene):
             se += stride
             tpe += stride
 
-        return tpe - self._gene.tps #(se - sb) - 1
+        return tpe - self._gene.tps
 
-    def coding_sequence(self, include_stop=True):
+    def cds(self, include_stop=True):
         cdef int  tpe    = self._gene.tpe
         cdef int* se     = (self._gene.eseq + tpe) + 1
         cdef int* sb     = (self._gene.eseq + self._gene.tps)
