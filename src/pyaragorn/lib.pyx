@@ -12,6 +12,7 @@ from cpython.unicode cimport (
 from libc.stdio cimport FILE, fopen, fdopen, fclose, fprintf, fputc, stdout, stderr
 from libc.stdlib cimport calloc, free
 from libc.string cimport memcpy
+from libc.stdint cimport intptr_t
 
 cimport aragorn
 from aragorn cimport csw, data_set, gene
@@ -128,17 +129,6 @@ cdef class Gene:
         """
         return -1 if self._gene.comp else +1
 
-    @cached_property
-    def sequence(self):
-        """`str`: The sequence of the RNA gene.
-        """
-        cdef long  i
-        cdef int   length = aragorn.seqlen(&self._gene)
-        return ''.join([
-            chr(aragorn.cpbase(self._gene.seq[i]))
-            for i in range(length)
-        ])
-
     @property
     def energy(self):
         """`float`: The approximated energy of the RNA structure.
@@ -146,6 +136,16 @@ cdef class Gene:
         cdef csw sw
         default_sw(&sw) # FIXME?
         return aragorn.nenergy(&self._gene, &sw)
+
+    def sequence(self):
+        """Retrieve the full sequence of the RNA gene.
+        """
+        cdef int       i
+        cdef int       l = aragorn.seqlen(&self._gene)
+        cdef bytearray b = bytearray(l)
+        for i in range(l):
+            b[i] = aragorn.cpbase(self._gene.seq[i])
+        return b.decode('ascii')
 
 
 cdef class TRNAGene(Gene):
@@ -205,6 +205,44 @@ cdef class TRNAGene(Gene):
 cdef class TMRNAGene(Gene):
     """A transfer-messenger RNA (tmRNA) gene.
     """
+
+    @property
+    def peptide_offset(self):
+        return self._gene.tps + 1
+
+    def coding_sequence(self, include_stop=True):
+        raise NotImplementedError()  # todo
+
+    def peptide(self, include_stop=True):
+        """Retrieve the peptide sequence of the mRNA-like region.
+
+        Arguments:
+            include_stop (`bool`): Whether or not to include the STOP codons
+                in the returned peptide sequence. Defaults to `True`.
+
+        Returns:
+            `str`: The translation of the mRNA-like region of the tmRNA
+            gene, optionally without STOP codons.
+
+        """
+        cdef int  tpe    = self._gene.tpe
+        cdef int* se     = (self._gene.eseq + tpe) + 1
+        cdef int* sb     = (self._gene.eseq + self._gene.tps)
+        cdef int  stride = 3 if include_stop else -3
+
+        cdef csw sw
+        (<int*> &sw.geneticcode)[0] = self._genetic_code
+
+        while aragorn.ltranslate(se, &self._gene, &sw) == ord('*'):
+            se += stride
+            tpe += stride
+
+        peptide = bytearray()
+        while sb < se:
+            peptide.append(aragorn.ltranslate(sb, &self._gene, &sw))
+            sb += 3
+
+        return peptide.decode('ascii')
 
 
 cdef int[128] _map = [

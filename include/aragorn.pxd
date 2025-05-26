@@ -237,6 +237,7 @@ cdef extern from "aragorn.h" nogil:
     char cpbase(int c)
     int gene_sort(data_set *d, int nt, int* sort, csw *sw)
     void init_gene(gene* ts, int nstart, int nstop)
+    char ltranslate(int *codon, gene *t, csw *sw)
     int move_forward(data_set *d)
     double nenergy(gene *t, csw *sw)
     void remove_overlapping_trna(data_set *d, int nt, csw *sw)
