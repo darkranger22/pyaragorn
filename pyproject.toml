@@ -1,0 +1,89 @@
+[build-system]
+requires = ["scikit-build-core", "cython >= 3.0", "pycparser >= 2.0"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "pyaragorn"
+version = "0.0.1"
+description = "Cython bindings and Python interface to ARAGORN, a tRNA and mtRNA detection software."
+readme = "README.md"
+requires-python = ">=3.7"
+license = { file = "COPYING" }
+authors = [
+  { name = "Martin Larralde", email = "martin.larralde@embl.de" },
+]
+keywords = ["bioinformatics", "gene", "transfer", "messenger", "RNA"]
+
+[project.urls]
+"Documentation" = "https://pyaragorn.readthedocs.io/en/stable/"
+"Bug Tracker" = "https://github.com/althonos/pyaragorn/issues"
+"Changelog" = "https://github.com/althonos/pyaragorn/blob/master/CHANGELOG.md"
+"Coverage" = "https://codecov.io/gh/althonos/pyaragorn/"
+"Builds" = "https://github.com/althonos/pyaragorn/actions"
+"PyPI" = "https://pypi.org/project/pyaragorn"
+
+[project.optional-dependencies]
+test = ["importlib-resources ; python_version < '3.9'"]
+
+[tool.scikit-build]
+build-dir = "build/{build_type}"
+editable.rebuild = true
+editable.verbose = true
+sdist.exclude = [".github"]
+
+[[tool.scikit-build.overrides]]
+if.state = "editable"
+cmake.build-type = "Debug"
+
+[[tool.scikit-build-overrides]]
+if.env.SCCACHE = true
+cmake.define.CMAKE_C_COMPILER_LAUNCHER = "sccache"
+cmake.define.CMAKE_CXX_COMPILER_LAUNCHER = "sccache"
+
+[[tool.scikit-build-overrides]]
+if.env.MOLD = true
+cmake.define.CMAKE_LINKER_TYPE = "mold"
+
+[tool.cibuildwheel]
+before-build = "pip install scikit-build-core cython"
+build-frontend = { name = "pip", args = ["--no-build-isolation"] }
+build-verbosity = 1
+free-threaded-support = false
+test-command = "python -m unittest pyaragorn.tests -v"
+test-extras = ["test"]
+free-threaded-support = false
+
+[tool.cibuildwheel.macos]
+environment = { MACOSX_DEPLOYMENT_TARGET = "10.12" }
+
+[tool.coverage.run]
+plugins = ["Cython.Coverage"]
+
+[tool.coverage.report]
+include = ["src/pyaragorn/*"]
+omit = ["src/pyaragorn/tests/*"]
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "if typing.TYPE_CHECKING:",
+    "@abc.abstractmethod",
+    "@abc.abstractproperty",
+    "raise NotImplementedError",
+    "return NotImplemented",
+    "raise UnexpectedError",
+    "raise AllocationError",
+]
+
+[tool.mypy]
+disallow_any_decorated = true
+disallow_any_generics = true
+disallow_any_unimported = false
+disallow_subclassing_any = false
+disallow_untyped_calls = true
+disallow_untyped_defs = true
+ignore_missing_imports = true
+warn_unused_ignores = true
+warn_return_any = true
+
+["tool.mypy-pyaragorn.tests"]
+ignore_errors = true
