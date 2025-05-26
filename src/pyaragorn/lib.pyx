@@ -302,10 +302,12 @@ cdef class RNAFinder:
         *,
         bint trna = True,
         bint tmrna = True,
+        bint linear = False,
     ):
         default_sw(&self._sw)
         self._sw.trna = trna
         self._sw.tmrna = tmrna
+        self._sw.linear = linear
         self._sw.f = stdout
         self._sw.verbose = False #True
 
