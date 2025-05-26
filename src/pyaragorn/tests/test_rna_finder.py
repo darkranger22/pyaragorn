@@ -9,6 +9,16 @@ from . import data
 _TRNA_RX = re.compile(r"^(\d+)\s+tRNA-([A-Za-z]{3})\s+(c?)\[(\d+),(\d+)\]\s+([\d.]+)\s+(\d+)\s+\(([a-z]{2,4})\)")
 _TMRNA_RX = re.compile(r"^(\d+)\s+tmRNA\s+(c?)\[(\d+),(\d+)]\s+([\d.]+)\s+(\d+),(\d+)\s+([A-Z\*]+)")
 
+def batched(iterable, n, *, strict=False):
+    # batched('ABCDEFG', 3) → ABC DEF G
+    if n < 1:
+        raise ValueError('n must be at least one')
+    iterator = iter(iterable)
+    while batch := tuple(itertools.islice(iterator, n)):
+        if strict and len(batch) != n:
+            raise ValueError('batched(): incomplete batch')
+        yield batch
+
 class TestRNAFinder(unittest.TestCase):
     
     def test_default(self):
@@ -18,7 +28,7 @@ class TestRNAFinder(unittest.TestCase):
         finder = RNAFinder(translation_table=11)
         genes = finder.find_rna(str(record.seq))
 
-        for gene, expected in itertools.zip_longest(genes, itertools.batched(lines[2:], 3)):
+        for gene, expected in itertools.zip_longest(genes, batched(lines[2:], 3)):
             self.assertIsNotNone(gene)
             self.assertIsNotNone(expected)
             result, seq, ss = expected
