@@ -100,7 +100,7 @@ cdef class Gene:
         """`int`: The sequence coordinate at which the gene begins.
 
         Hint:
-            This coordinate is 1-based, inclusive. To use it to index 
+            This coordinate is 1-based, inclusive. To use it to index
             a Python array or string, subtract one.
 
         """
@@ -111,7 +111,7 @@ cdef class Gene:
         """`int`: The sequence coordinate at which the gene end.
 
         Hint:
-            This coordinate is 1-based, inclusive. To use it to index 
+            This coordinate is 1-based, inclusive. To use it to index
             a Python array or string, subtract one.
 
         """
@@ -157,7 +157,7 @@ cdef class TRNAGene(Gene):
         """`str` or (`str`, `str`): The 3-letter amino-acid(s) for this gene.
 
         Hint:
-            A single string is given if the anticodon loop was identified 
+            A single string is given if the anticodon loop was identified
             with exactly 3 nucleotides. Otherwise, this property stores
             a pair of amino-acids.
 
@@ -201,6 +201,17 @@ cdef class TRNAGene(Gene):
             x += self._gene.nintron
         return x
 
+    @property
+    def anticodon_length(self):
+        """`int`: The length of the anticodon (in nucleotides).
+        """
+        if self._gene.cloop == 6:
+            return 2
+        elif self._gene.cloop == 8:
+            return 4
+        else:
+            return 3
+
 
 cdef class TMRNAGene(Gene):
     """A transfer-messenger RNA (tmRNA) gene.
@@ -210,8 +221,43 @@ cdef class TMRNAGene(Gene):
     def peptide_offset(self):
         return self._gene.tps + 1
 
+    @property
+    def peptide_length(self):
+        """`int`: The length of the peptide (in nucleotides).
+        """
+        cdef int  tpe    = self._gene.tpe
+        cdef int* se     = (self._gene.eseq + tpe) + 1
+        cdef int* sb     = (self._gene.eseq + self._gene.tps)
+        cdef int  stride = 3
+
+        cdef csw sw
+        (<int*> &sw.geneticcode)[0] = self._genetic_code
+
+        while aragorn.ltranslate(se, &self._gene, &sw) == ord('*'):
+            se += stride
+            tpe += stride
+
+        return tpe - self._gene.tps #(se - sb) - 1
+
     def coding_sequence(self, include_stop=True):
-        raise NotImplementedError()  # todo
+        cdef int  tpe    = self._gene.tpe
+        cdef int* se     = (self._gene.eseq + tpe) + 1
+        cdef int* sb     = (self._gene.eseq + self._gene.tps)
+        cdef int  stride = 3 if include_stop else -3
+
+        cdef csw sw
+        (<int*> &sw.geneticcode)[0] = self._genetic_code
+
+        while aragorn.ltranslate(se, &self._gene, &sw) == ord('*'):
+            se += stride
+            tpe += stride
+
+        cds = bytearray()
+        while sb < se:
+            cds.append(aragorn.cpbase(sb[0]))
+            sb += 1
+
+        return cds.decode('ascii')
 
     def peptide(self, include_stop=True):
         """Retrieve the peptide sequence of the mRNA-like region.
@@ -250,7 +296,6 @@ cdef class Cursor:
     cdef const void* data
     cdef int         kind
     cdef size_t      length
-    cdef size_t      pos
     cdef data_set    ds
 
     def __init__(self, obj):
@@ -264,11 +309,11 @@ cdef class Cursor:
             self.kind = PyUnicode_1BYTE_KIND
             self.data = &view[0]
             self.length = view.shape[0]
-        
+
         # keep a reference to the data source
         self.obj = obj
 
-        # reinitialize dataset book-keeping 
+        # reinitialize dataset book-keeping
         self.ds.filepointer = 0
         self.ds.ns = 0
         self.ds.nf = 0
@@ -277,25 +322,19 @@ cdef class Cursor:
         self.ds.seqstart = 0
         self.ds.seqstartoff = 0
         self.ds.ps = 0
+        self.ds.psmax = self.length
 
-        # count GC% and compute sequence length
+        # count GC%
         self.ds.gc = self._gc()
-        self.ds.psmax = self.ds.ps
-
-        # reset dataset / cursor position
-        self.ds.ps = 0
-        self.pos = 0
 
     cdef int _forward(self) noexcept nogil:
         cdef Py_UCS4 x
         cdef int     base
 
-        if self.pos >= self.length:
+        if self.ds.ps >= self.ds.psmax:
             return <int> aragorn.base.TERM
 
-        x = PyUnicode_READ(self.kind, self.data, self.pos)
-        self.pos += 1
-
+        x = PyUnicode_READ(self.kind, self.data, self.ds.ps)
         if x >= 128:
             return <int> aragorn.base.NOBASE
 
@@ -307,17 +346,21 @@ cdef class Cursor:
             return <int> aragorn.base.NOBASE
 
     cdef double _gc(self) noexcept nogil:
-        cdef int  base
-        cdef long i
-        cdef long ngc  = 0
+        cdef long    i
+        cdef Py_UCS4 x
+        cdef int     base
+        cdef long    ngc  = 0
+        cdef long    ps   = 0
 
         for i in range(self.length):
-            base = self._forward()
+            x = PyUnicode_READ(self.kind, self.data, i)
+            base = aragorn.map[x]
             if base == -1:
                 break
             ngc += (base == <int> aragorn.base.Cytosine) or (base == <int> aragorn.base.Guanine)
+            ps += 1
 
-        return <double> ngc / <double> self.ds.ps
+        return <double> ngc / <double> ps
 
 
 cdef class RNAFinder:
@@ -346,13 +389,13 @@ cdef class RNAFinder:
         """Find RNA genes in the input DNA sequence.
 
         Arguments:
-            sequence (`str` or buffer): The nucleotide sequence to process, 
+            sequence (`str` or buffer): The nucleotide sequence to process,
                 either as a string of nucleotides (upper- or lowercase), or
                 as an object implementing the buffer protocol.
 
         Returns:
-            `list` of `~pyaragorn.Gene`: A list of `Gene` corresponding to 
-            RNA genes detected in the sequence according to the `RNAFinder` 
+            `list` of `~pyaragorn.Gene`: A list of `Gene` corresponding to
+            RNA genes detected in the sequence according to the `RNAFinder`
             parameters.
 
         """
