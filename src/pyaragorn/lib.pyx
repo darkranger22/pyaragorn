@@ -65,9 +65,6 @@ from libc.stdint cimport intptr_t
 cimport aragorn
 from aragorn cimport csw, data_set, gene
 
-import os
-from functools import cached_property
-
 # --- Helpers ------------------------------------------------------------------
 
 cdef extern from * nogil:
@@ -465,7 +462,6 @@ cdef class RNAFinder:
             parameters.
 
         """
-        cdef Gene     g
         cdef int      n
         cdef int      nt
         cdef csw      sw
@@ -510,12 +506,10 @@ cdef class RNAFinder:
         cdef int seq[((2 * aragorn.LSEQ) + aragorn.WRAP) + 1]
         cdef int cseq[((2 * aragorn.LSEQ) + aragorn.WRAP) + 1]
         cdef int wseq[(2 * aragorn.WRAP) + 1]
-        cdef long ngc
-        cdef int base
+        cdef long i
         cdef long rewind
         cdef long drewind
         cdef long tmaxlen
-        cdef int i
         cdef bint flag
         cdef int length
         cdef int *s
@@ -525,9 +519,6 @@ cdef class RNAFinder:
         cdef int *swrap
         cdef long gap
         cdef long start
-        cdef long vstart
-        cdef long vstop
-        cdef double sens
         cdef bint loop
         cdef bint NX
         cdef bint SH
