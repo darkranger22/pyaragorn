@@ -1,3 +1,48 @@
+# coding: utf-8
+# cython: language_level=3, linetrace=True, binding=True
+
+"""Bindings to ARAGORN, a (t|mt|tm)RNA gene finder.
+
+Attributes:
+    ARAGORN_VERSION (`str`): The version of ARAGORN currently wrapped
+        in PyARAGORN.
+    TRANSLATION_TABLES (`set` of `int`): A set containing all the
+        translation tables supported by PyARAGORN.
+
+Example:
+    PyARAGORN can work on any DNA sequence stored in either a text or a
+    byte array. To load a sequence from one of the common sequence formats,
+    you can use an external dedicated library such as
+    `Biopython <https://github.com/biopython/biopython>`_::
+
+        >>> import gzip
+        >>> import Bio.SeqIO
+        >>> with gzip.open("KK037166.fna.gz", "rt") as f:
+        ...     record = Bio.SeqIO.read(f, "fasta")
+
+    Then use PyARAGORN to find the tRNA and tmRNA genes using the
+    bacterial genetic code (translation table 11):
+
+        >>> import pyaragorn
+        >>> p = pyaragorn.RNAGeneFinder(translation_table=11)
+        >>> for gene in p.find_rna(record.seq.encode()):
+        ...     print(gene.type, gene.begin, gene.end)
+
+    The gene coordinates are 1-indexed, inclusive, similarly to
+    `Pyrodigal <https://pyrodigal.readthedocs.io>`_ genes.
+
+References:
+    - Laslett, Dean, and Björn Canback.
+      “ARAGORN, a program to detect tRNA genes and tmRNA genes in nucleotide
+      sequences.” Nucleic acids research vol. 32,1 11-6. 2 Jan. 2004,
+      :doi:`10.1093/nar/gkh152`. :pmid:`14704338`. :pmcid:`PMC373265`.
+    - Laslett, Dean, and Björn Canbäck.
+      “ARWEN: a program to detect tRNA genes in metazoan mitochondrial
+      nucleotide sequences.” Bioinformatics (Oxford, England) vol. 24,2
+      (2008): 172-5. :doi:`10.1093/bioinformatics/btm573`. :pmid:`18033792`.
+
+"""
+
 from cython.operator cimport postincrement, dereference
 from cpython.bytes cimport PyBytes_FromStringAndSize
 from cpython.exc cimport PyErr_CheckSignals
@@ -62,6 +107,10 @@ cdef inline long int sq(data_set* d, long int pos) nogil:
 # --- Constants ----------------------------------------------------------------
 
 cdef set _TRANSLATION_TABLES  = set(range(1, 7)) | set(range(9, 17)) | set(range(21, 27)) | {29, 30} | {32, 33}
+
+__version__ = PROJECT_VERSION
+
+TRANSLATION_TABLES = _TRANSLATION_TABLES
 
 
 # --- Classes ------------------------------------------------------------------
@@ -364,6 +413,8 @@ cdef class Cursor:
 
 
 cdef class RNAFinder:
+    """A configurable RNA gene finder.
+    """
     cdef csw _sw
 
     def __init__(
@@ -374,6 +425,18 @@ cdef class RNAFinder:
         bint tmrna = True,
         bint linear = False,
     ):
+        """__init__(self, translation_table=1, *, trna=True, tmrna=True, linear=False)\n--\n
+
+        Create a new RNA finder.
+
+        Arguments:
+            translation_table (`int`, optional): The translation table to
+                use. Check the :wiki:`List of genetic codes` page
+                listing all genetic codes for the available values, or
+                the :attr:`pyaragorn.TRANSLATION_TABLES` constant for allowed
+                values.
+
+        """
         default_sw(&self._sw)
         self._sw.trna = trna
         self._sw.tmrna = tmrna

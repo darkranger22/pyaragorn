@@ -1,6 +1,6 @@
 from . import lib
 from .lib import (
-    # __version__,
+    __version__,
     Gene,
     TRNAGene,
     TMRNAGene,
