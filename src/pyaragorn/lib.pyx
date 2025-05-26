@@ -245,17 +245,6 @@ cdef class TMRNAGene(Gene):
         return peptide.decode('ascii')
 
 
-cdef int[128] _map = [
-    -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, 
-    -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, 
-    -4, -4, -4, -4, -4, -4, -4, -4,  5, -3, -4, -4, -4, -4, -4, -4, -4, -4, -4, 
-    -4, -4, -4, -4, -4, -2, -4, -4,  0,  4,  1,  4, -4, -4,  2,  4, -4, -4,  4, 
-    -5,  4,  4, -4, -4, -4,  4,  4,  3,  3,  4,  4, -4,  4, -4, -4, -4, -4, -2, 
-     5, -4,  0,  4,  1,  4, -4, -4,  2,  4, -4, -4,  4, -5,  4,  4, -4, -4, -4, 
-     4,  4,  3,  3,  4,  4, -4,  4, -4, -4, -4, -4, -4, -4
-]
-
-
 cdef class Cursor:
     cdef object      obj
     cdef const void* data
@@ -302,20 +291,20 @@ cdef class Cursor:
         cdef int     base
 
         if self.pos >= self.length:
-            return -1 #aragorn.TERM
+            return <int> aragorn.base.TERM
 
         x = PyUnicode_READ(self.kind, self.data, self.pos)
         self.pos += 1
 
         if x >= 128:
-            return 5 #aragorn.NOBASE
+            return <int> aragorn.base.NOBASE
 
-        base = _map[x]
-        if base >= 0:
+        base = aragorn.map[x]
+        if base >= <int> aragorn.base.Adenine:
             self.ds.ps += 1
             return base
         else:
-            return 5 #aragorn.NOBASE
+            return <int> aragorn.base.NOBASE
 
     cdef double _gc(self) noexcept nogil:
         cdef int  base

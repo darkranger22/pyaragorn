@@ -46,6 +46,8 @@ cdef extern from "aragorn.h" nogil:
     cdef long int sq(long int pos) 
 
     cdef enum base:
+        INSERT
+        TERM
         Adenine
         Cytosine
         Guanine
@@ -229,6 +231,46 @@ cdef extern from "aragorn.h" nogil:
         double cdsthresh
         double eref[NS]
         int tmrna_struct[200]
+
+    int[3][6][6] lbp
+    int[6][6] bp
+    int[6][6] wbp
+    int[6][6] wcbp
+    int[6][6] gc
+    int[6][6] gt
+    int[6][6] at
+    int[6][6] tt
+    int[6][6] stemterm
+    int[6][6] aastemterm
+    int[6][6] ggstemterm
+    int[6][6] assymst
+    int[6][6] assymat
+    int[6][6] stackbp
+    int[6][6] ggstackbp
+    int[6][6] ggbp
+    int[6][6] gabp
+    int[6][6] assymagbp
+    int[6][6] stembp
+    int[6][6] ggstembp
+    int[6][6] gastembp
+    int[6][6] vbp
+    int[256] map
+    # int[mtNTM][4] tandemid
+    # double[mtNTM] tandem_em
+    # double[6][6] send_em
+    # double[6][6] ssend_em
+    # int[6][6] neighbour_map
+    # double[2][6][6] neighbour_em
+    # unsigned int[6][6] btmap
+    # double[6][6] bem
+    # int[3][64][6] mt_discrim
+    # char[NAMINOACID + 1] aapolarity
+    # char[NAMINOACID + 1] aaletter
+    # char[NAMINOACID][20] aaname
+    # char[4] ambig_aaname
+    # int[NGENECODE][64] aamap
+    # char[NHELPLINE][81] helpmenu
+    # tmrna_tag_entry[NTAGMAX] tagdatabase
 
     char* aa(int* anticodon, csw* sw)
     void bopt_fastafile(data_set *d, csw *sw)

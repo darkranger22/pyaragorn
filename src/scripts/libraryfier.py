@@ -176,6 +176,12 @@ node.decl.type.args.params.insert(0,
 aamap = next(a for a in arrays if a.name == "aamap")
 aamap.type.type.type.type = pycparser.c_ast.ID(name="int8_t")
 
+# extract the map array from move_forward
+move_forward = next(f for f in functions if f.decl.name == "move_forward")
+map_array = move_forward.body.block_items.pop(2)
+map_array.storage = []
+arrays.append(map_array)
+
 # remove main function
 main = next(f for f in functions if f.decl.name == "main")
 functions.remove(main)
