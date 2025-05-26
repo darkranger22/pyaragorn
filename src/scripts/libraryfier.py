@@ -36,7 +36,8 @@ with args.input.open() as f:
 with tempfile.NamedTemporaryFile(mode="r+", suffix=".c") as tmp:
     tmp.writelines(contents)
     tmp.flush()
-    proc = subprocess.run([args.cpp, "-E", tmp.name], capture_output=True)
+    flag = "/E" if os.name == "nt" else "-E"
+    proc = subprocess.run([args.cpp, flag, tmp.name], capture_output=True)
     proc.check_returncode()
     parser = pycparser.CParser()
     ast = parser.parse(proc.stdout.decode())
