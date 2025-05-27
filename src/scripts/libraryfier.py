@@ -34,11 +34,12 @@ with args.input.open() as f:
             contents.append(line)
 
 # preprocess contents and load AST
-with tempfile.NamedTemporaryFile(mode="r+", suffix=".c") as tmp:
-    tmp.writelines(contents)
-    tmp.flush()
+with tempfile.TemporaryDirectory() as folder:
+    source = pathlib.Path(folder).joinpath("aragorn.c")
+    with source.open("w") as tmp:
+        tmp.writelines(contents)
     flag = "/E" if os.name == "nt" else "-E"
-    proc = subprocess.run([args.cpp, flag, tmp.name], stdout=subprocess.PIPE)
+    proc = subprocess.run([args.cpp, flag, source], stdout=subprocess.PIPE)
     proc.check_returncode()
     parser = pycparser.CParser()
     ast = parser.parse(proc.stdout.decode())

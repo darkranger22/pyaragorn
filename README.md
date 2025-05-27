@@ -12,6 +12,7 @@
 [![Python Versions](https://img.shields.io/pypi/pyversions/pyaragorn.svg?style=flat-square&maxAge=600&logo=python)](https://pypi.org/project/pyaragorn/#files)
 [![Python Implementations](https://img.shields.io/pypi/implementation/pyaragorn.svg?style=flat-square&maxAge=600&label=impl)](https://pypi.org/project/pyaragorn/#files)
 [![Source](https://img.shields.io/badge/source-GitHub-303030.svg?maxAge=2678400&style=flat-square)](https://github.com/althonos/pyaragorn/)
+[![Mirror](https://img.shields.io/badge/mirror-LUMC-003EAA.svg?maxAge=2678400&style=flat-square)](https://git.lumc.nl/mflarralde/pyaragorn/)
 [![GitHub issues](https://img.shields.io/github/issues/althonos/pyaragorn.svg?style=flat-square&maxAge=600)](https://github.com/althonos/pyaragorn/issues)
 [![Docs](https://img.shields.io/readthedocs/pyaragorn/latest?style=flat-square&maxAge=600)](https://pyaragorn.readthedocs.io)
 [![Changelog](https://img.shields.io/badge/keep%20a-changelog-8A0707.svg?maxAge=2678400&style=flat-square)](https://github.com/althonos/pyaragorn/blob/main/CHANGELOG.md)
