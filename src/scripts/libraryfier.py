@@ -38,11 +38,11 @@ with tempfile.TemporaryDirectory() as folder:
     source = pathlib.Path(folder).joinpath("aragorn.c")
     with source.open("w") as tmp:
         tmp.writelines(contents)
-    flag = "/E" if os.name == "nt" else "-E"
-    proc = subprocess.run([args.cpp, flag, source], stdout=subprocess.PIPE)
+    flag = "/EP" if os.name == "nt" else "-E"
+    proc = subprocess.run([args.cpp, flag, os.fspath(source)], stdout=subprocess.PIPE)
     proc.check_returncode()
     parser = pycparser.CParser()
-    ast = parser.parse(proc.stdout.decode())
+    ast = parser.parse("\n".join(proc.stdout.decode().splitlines()))
 
 # record typedefs, constant arrays, functions
 typedefs = []
