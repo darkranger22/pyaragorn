@@ -480,8 +480,9 @@ cdef class RNAFinder:
                 as an object implementing the buffer protocol.
 
         Returns:
-            `list` of `~pyaragorn.Gene`: A list of `Gene` corresponding to
-            RNA genes detected in the sequence according to the `RNAFinder`
+            `list` of `~pyaragorn.Gene`: A list of `~pyaragorn.Gene` (either
+            `~pyaragorn.TRNAGene` or `~pyaragorn.TMRNAGene`) corresponding 
+            to RNA genes detected in the sequence according to the `RNAFinder`
             parameters.
 
         """
