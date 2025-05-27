@@ -5,6 +5,8 @@ from .lib import (
     TRNAGene,
     TMRNAGene,
     RNAFinder,
+    ARAGORN_VERSION,
+    TRANSLATION_TABLES,
 )
 
 __doc__ = lib.__doc__

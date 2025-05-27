@@ -111,6 +111,7 @@ cdef set _TRANSLATION_TABLES  = set(range(1, 7)) | set(range(9, 17)) | set(range
 __version__ = PROJECT_VERSION
 
 TRANSLATION_TABLES = _TRANSLATION_TABLES
+ARAGORN_VERSION = PROJECT_ARAGORN_VERSION
 
 
 # --- Classes ------------------------------------------------------------------
