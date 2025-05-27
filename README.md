@@ -22,14 +22,14 @@
 ## 🗺️ Overview
 
 [ARAGORN](https://trna.se) is a fast method developed
-by Dean Laslett & Björn Canback[\[1\]](#ref1) to identify tRNA and tmRNA 
+by Dean Laslett & Björn Canback[\[1\]](#ref1) to identify tRNA and tmRNA
 genes in genomic sequences using heuristics to detect potential high-scoring
-stem-loop structures. The complementary method ARWEN, developed by the same 
-authors[\[2\]](#ref2) to support the detection of metazoan mitochondrial 
+stem-loop structures. The complementary method ARWEN, developed by the same
+authors[\[2\]](#ref2) to support the detection of metazoan mitochondrial
 RNA (mtRNA) genes, was later integrated into ARAGORN.
 
-`pyaragorn` is a Python module that provides bindings to ARAGORN and ARWEN 
-using [Cython](https://cython.org/). It directly interacts with the 
+`pyaragorn` is a Python module that provides bindings to ARAGORN and ARWEN
+using [Cython](https://cython.org/). It directly interacts with the
 ARAGORN internals, which has the following advantages:
 
 - **single dependency**: PyARAGORN is distributed as a Python package, so you
@@ -38,46 +38,66 @@ ARAGORN internals, which has the following advantages:
 - **no intermediate files**: Everything happens in memory, in a Python object
   you fully control, so you don't have to invoke the ARAGORN CLI using a
   sub-process and temporary files. Sequences can be passed directly as
-  strings, bytes, or any buffer objects, which avoids the overhead of 
+  strings, bytes, or any buffer objects, which avoids the overhead of
   formatting your input to FASTA for ARAGORN.
-- **no output parsing**: The detected RNA genes are returned as Python 
+- **no output parsing**: The detected RNA genes are returned as Python
   objects with transparent attributes, which facilitate handling the output
   of ARAGORN compared to parsing the output tables.
-- **same results**: PyARAGORN is tested to ensure it produces the same results 
-  as ARAGORN `v1.2.41`, the latest release. 
+- **same results**: PyARAGORN is tested to ensure it produces the same results
+  as ARAGORN `v1.2.41`, the latest release.
 
 
-<!-- ### 📋 Features -->
+### 📋 Features
 
+PyARAGORN currently supports the following features from the ARAGORN
+command line:
 
-<!-- ### 🧶 Thread-safety -->
+- [x] tRNA gene detection (`aragorn -t`).
+- [x] tmRNA gene detection (`aragorn -m`).
+- [ ] mtRNA gene detection (`aragorn -mt`).
+- [x] Reporting of batch mode metadata (`aragorn -w`).
+- [x] Alternative genetic code (`aragorn -gc`).
+- [ ] Custom genetic code (`aragorn -gc<n>,BBB=<aa>`).
+- [x] Circular and linear topologies (`aragorn -c` | `aragorn -l`).
+- [ ] Intron length configuration (`aragorn -i`).
+- [ ] Scoring threshold configuration (`aragorn -ps`).
+- [x] Sequence extraction from RNA gene (`aragorn -seq`).
+- [ ] Secondary structure extraction from each gene (`aragorn -br`).
 
+### 🧶 Thread-safety
+
+`pyaragorn.RNAFinder` instances are thread-safe. In addition, the `find_rna`
+method is re-entrant. This means you can parameterize a `RNAFinder` instance
+once, and then use a pool to process sequences in parallel:
+
+```python
+import multiprocessing.pool
+import pyaragorn
+
+rna_finder = pyaragorn.RNAFinder()
+
+with multiprocessing.pool.ThreadPool() as pool:
+    predictions = pool.map(rna_finder.find_rna, sequences)
+```
 
 ## 🔧 Installing
 
 This project is supported on Python 3.7 and later.
 
-For now, PyARAGORN can be installed from the GitHub repository, which will
-require compiling the code of the Cython extension:
-
-```console
-$ pip install git+https://github.com/althonos/pyaragorn
-```
-
-<!-- PyARAGORN can be installed directly from [PyPI](https://pypi.org/project/pyaragorn/),
+PyARAGORN can be installed directly from [PyPI](https://pypi.org/project/pyaragorn/),
 which hosts some pre-built wheels for the x86-64 architecture (Linux/MacOS/Windows)
 and the Aarch64 architecture (Linux/MacOS), as well as the code required to compile
 from source with Cython:
 ```console
 $ pip install pyaragorn
-``` -->
+```
 
 ## 💡 Example
 
 Let's load a sequence from a
-[GenBank](http://www.insdc.org/files/feature_table.html) file, 
-use a `RNAFinder` to find all the tRNA genes it contains, 
-and print the anticodon and corresponding amino-acids of the detected 
+[GenBank](http://www.insdc.org/files/feature_table.html) file,
+use a `RNAFinder` to find all the tRNA genes it contains,
+and print the anticodon and corresponding amino-acids of the detected
 tRNAs.
 
 
@@ -100,9 +120,9 @@ for gene in genes:
         print(
             gene.amino_acid,   # 3-letter code
             gene.begin,        # 1-based, inclusive
-            gene.end,         
+            gene.end,
             gene.strand,       # +1 or -1 for direct and reverse strand
-            gene.energy,       
+            gene.energy,
             gene.anticodon
         )
 ```
@@ -142,7 +162,7 @@ ARAGORN and ARWEN were developed by Dean Laslett and are distributed under the
 terms of the GPLv3 or later as well. See `vendor/aragorn` for more information.
 
 *This project is in no way not affiliated, sponsored, or otherwise endorsed
-by the ARAGORN authors. It was developed by 
+by the ARAGORN authors. It was developed by
 [Martin Larralde](https://github.com/althonos/) during his PhD project
 at the [Leiden University Medical Center](https://www.lumc.nl/en/) in
 the [Zeller Lab](https://zellerlab.org).*

@@ -43,7 +43,7 @@ import pyaragorn
 project = pyaragorn.__name__
 author = re.match('(.*) <.*>', pyaragorn.__author__).group(1)
 year = datetime.date.today().year
-copyright = '{}, {}'.format("2020" if year==2020 else "2020-{}".format(year), author)
+copyright = '{}, {}'.format("2025" if year==2025 else "2025-{}".format(year), author)
 
 # extract the semantic version
 semver = semantic_version.Version.coerce(pyaragorn.__version__)

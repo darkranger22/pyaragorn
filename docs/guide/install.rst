@@ -9,17 +9,17 @@ Installation
     ARAGORN, which requires a C compiler to be available.
 
 
-.. PyPi
-.. ^^^^
+PyPi
+^^^^
 
-.. ``pyaragorn`` is hosted on GitHub, but the easiest way to install it is to download
-.. the latest release from its `PyPi repository <https://pypi.python.org/pypi/pyaragorn>`_.
-.. It will install all dependencies then install ``pyaragorn`` either from a wheel if
-.. one is available, or from source after compiling the Cython code :
+``pyaragorn`` is hosted on GitHub, but the easiest way to install it is to download
+the latest release from its `PyPi repository <https://pypi.python.org/pypi/pyaragorn>`_.
+It will install all dependencies then install ``pyaragorn`` either from a wheel if
+one is available, or from source after compiling the Cython code :
 
-.. .. code:: console
+.. code:: console
 
-..    $ pip install --user pyaragorn
+   $ pip install --user pyaragorn
 
 .. Conda
 .. ^^^^^
