@@ -1,6 +1,7 @@
 import argparse
 import copy
 import os
+import sys
 import itertools
 import pathlib
 import tempfile
@@ -37,7 +38,7 @@ with tempfile.NamedTemporaryFile(mode="r+", suffix=".c") as tmp:
     tmp.writelines(contents)
     tmp.flush()
     flag = "/E" if os.name == "nt" else "-E"
-    proc = subprocess.run([args.cpp, flag, tmp.name], capture_output=True)
+    proc = subprocess.run([args.cpp, flag, tmp.name], stdout=subprocess.PIPE)
     proc.check_returncode()
     parser = pycparser.CParser()
     ast = parser.parse(proc.stdout.decode())
