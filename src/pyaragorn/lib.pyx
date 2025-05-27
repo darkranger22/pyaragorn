@@ -277,6 +277,12 @@ cdef class TMRNAGene(Gene):
     """
 
     @property
+    def permuted(self):
+        """`bool`: Whether this tmRNA gene is a permuted gene.
+        """
+        return self._gene.asst != 0
+
+    @property
     def cds_offset(self):
         """`int`: The offset in the gene at which the coding sequence starts.
         """
