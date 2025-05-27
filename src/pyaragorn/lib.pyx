@@ -243,7 +243,7 @@ cdef class TRNAGene(Gene):
 
     @property
     def anticodon_offset(self):
-        """`int`: The offset in the gene at which the anticodon is located.
+        """`int`: The offset in the gene at which the anticodon starts.
         """
         cdef int x = 1 + self._gene.anticodon
         if self._gene.nintron > 0 and self._gene.intron <= self._gene.anticodon:
@@ -264,15 +264,26 @@ cdef class TRNAGene(Gene):
 
 cdef class TMRNAGene(Gene):
     """A transfer-messenger RNA (tmRNA) gene.
+
+    Example:
+        >>> rna_finder = pyaragorn.RNAFinder(11, trna=False, tmrna=True)
+        >>> tmrna = rna_finder.find_rna(str(record.seq))[0]
+        >>> tmrna.begin, tmrna.end
+        (198037, 198447)
+        >>> tmrna.peptide()
+        'AEKNEENFEMPAFMINNASAGANYMFA**'
+
     """
 
     @property
     def cds_offset(self):
+        """`int`: The offset in the gene at which the coding sequence starts.
+        """
         return self._gene.tps + 1
 
     @property
     def cds_length(self):
-        """`int`: The length of the peptide (in nucleotides).
+        """`int`: The length of the coding sequence (in nucleotides).
         """
         cdef int  tpe    = self._gene.tpe
         cdef int* se     = (self._gene.eseq + tpe) + 1
@@ -289,6 +300,17 @@ cdef class TMRNAGene(Gene):
         return tpe - self._gene.tps
 
     def cds(self, include_stop=True):
+        """Retrieve the coding sequence of the mRNA-like region.
+
+        Arguments:
+            include_stop (`bool`): Whether or not to include the STOP codons
+                in the returned nucleotide sequence. Defaults to `True`.
+
+        Returns:
+            `str`: The sequence of the mRNA-like region in the tmRNA
+            gene, optionally without STOP codons.
+
+        """
         cdef int  tpe    = self._gene.tpe
         cdef int* se     = (self._gene.eseq + tpe) + 1
         cdef int* sb     = (self._gene.eseq + self._gene.tps)

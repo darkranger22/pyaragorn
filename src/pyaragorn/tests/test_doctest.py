@@ -44,9 +44,14 @@ def load_tests(loader, tests, ignore):
     Bio.SeqIO = mock.Mock()
     Bio.SeqIO.read = lambda file, format: next(parse(file))
 
+    # load sample record
+    data_folder = os.path.realpath(os.path.join(__file__, os.path.pardir, "data"))
+    with gzip.open(os.path.join(data_folder, "CP001621.fna.gz"), "rt") as f:
+        record = next(parse(f))
+
     def setUp(self):
         warnings.simplefilter("ignore")
-        os.chdir(os.path.realpath(os.path.join(__file__, os.path.pardir, "data")))
+        os.chdir(data_folder)
         sys.modules["Bio"] = Bio
         sys.modules["Bio.SeqIO"] = Bio.SeqIO
 
@@ -70,7 +75,7 @@ def load_tests(loader, tests, ignore):
                 continue
             # import the submodule and add it to the tests
             module = importlib.import_module(".".join([pkg.__name__, subpkgname]))
-            globs = dict(pyaragorn=pyaragorn, json=json, gzip=gzip, Bio=Bio, **module.__dict__)
+            globs = dict(pyaragorn=pyaragorn, json=json, gzip=gzip, Bio=Bio, record=record, **module.__dict__)
             tests.addTests(
                 doctest.DocTestSuite(
                     module,
