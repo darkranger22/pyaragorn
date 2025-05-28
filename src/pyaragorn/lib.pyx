@@ -323,7 +323,7 @@ cdef class TMRNAGene(Gene):
 
         return tpe - self._gene.tps
 
-    def cds(self, include_stop=True):
+    def orf(self, include_stop=True):
         """Retrieve the open-reading frame of the mRNA-like region.
 
         Arguments:
