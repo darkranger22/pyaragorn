@@ -99,10 +99,10 @@ def pyaragorn_predict(rna_finder: pyaragorn.RNAFinder, genome: Path) -> set[Gene
             for prediction in rna_finder.find_rna(bytes(record.seq)):
                 kind = prediction.type
                 if prediction.type == "tRNA":
-                    if isinstance(prediction.amino_acid, str):
-                        kind = f"{kind}-{prediction.amino_acid}"
+                    if prediction.amino_acid == "???":
+                        kind = f"{kind}-?({'|'.join(prediction.amino_acids)})"
                     else:
-                        kind = f"{kind}-?({'|'.join(prediction.amino_acid)})"
+                        kind = f"{kind}-{prediction.amino_acid}"
                 elif prediction.type == "tmRNA" and prediction.permuted:
                     kind = f"tmRNA*"
                 gene: namedtuple = Gene(record.id,
