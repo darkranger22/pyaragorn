@@ -204,12 +204,29 @@ cdef class TRNAGene(Gene):
 
     @property
     def amino_acid(self):
-        """`str` or (`str`, `str`): The 3-letter amino-acid(s) for this gene.
+        """`str`: The 3-letter amino-acid(s) for this gene.
 
         Hint:
-            A single string is given if the anticodon loop was identified
-            with exactly 3 nucleotides. Otherwise, this property stores
-            a pair of amino-acids.
+            If the anticodon loop contains 6 or 8 bases, ``???`` is
+            returned.
+
+        """
+        cdef csw sw
+        cdef int* s = self._gene.seq + self._gene.anticodon
+        (<int*> &sw.geneticcode)[0] = self._genetic_code
+        if self._gene.cloop == 6 or self._gene.cloop == 8:
+            return "???"
+        else:
+            return aragorn.aa(s, &sw).decode('ascii')
+
+    @property
+    def amino_acids(self):
+        """`tuple` of `str`: All possible 3-letter amino-acids for this gene.
+
+        Hint:
+            If the anticodon loop contains 6 or 8 bases, a tuple of two
+            amino-acid is returned, otherwise a tuple with a single element
+            is returned.
 
         """
         cdef csw sw
@@ -283,14 +300,14 @@ cdef class TMRNAGene(Gene):
         return self._gene.asst != 0
 
     @property
-    def cds_offset(self):
-        """`int`: The offset in the gene at which the coding sequence starts.
+    def orf_offset(self):
+        """`int`: The offset in the gene at which the open-reading frame starts.
         """
         return self._gene.tps + 1
 
     @property
-    def cds_length(self):
-        """`int`: The length of the coding sequence (in nucleotides).
+    def orf_length(self):
+        """`int`: The length of the open-reading frame (in nucleotides).
         """
         cdef int  tpe    = self._gene.tpe
         cdef int* se     = (self._gene.eseq + tpe) + 1
@@ -307,7 +324,7 @@ cdef class TMRNAGene(Gene):
         return tpe - self._gene.tps
 
     def cds(self, include_stop=True):
-        """Retrieve the coding sequence of the mRNA-like region.
+        """Retrieve the open-reading frame of the mRNA-like region.
 
         Arguments:
             include_stop (`bool`): Whether or not to include the STOP codons
@@ -487,7 +504,7 @@ cdef class RNAFinder:
 
         Returns:
             `list` of `~pyaragorn.Gene`: A list of `~pyaragorn.Gene` (either
-            `~pyaragorn.TRNAGene` or `~pyaragorn.TMRNAGene`) corresponding 
+            `~pyaragorn.TRNAGene` or `~pyaragorn.TMRNAGene`) corresponding
             to RNA genes detected in the sequence according to the `RNAFinder`
             parameters.
 
