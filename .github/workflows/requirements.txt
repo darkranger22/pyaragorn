@@ -1,5 +1,0 @@
-cython ~=3.0
-pycparser >=2.0
-scikit-build-core
-build
-ninja
